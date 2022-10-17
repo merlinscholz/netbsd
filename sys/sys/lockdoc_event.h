@@ -24,6 +24,17 @@
  * has to be copied to the according fail experiment
  * as well as to convert!
  */
+enum LOCKDOC_OP {
+	LOCKDOC_ALLOC			= 'a',
+	LOCKDOC_FREE			= 'f',
+	LOCKDOC_LOCK_OP			= 'l',
+	LOCKDOC_CURRENT_TASK	= 't',
+	LOCKDOC_PREEMPT_COUNT	= 'p',
+	LOCKDOC_PID_OFFSET		= 'o',
+	LOCKDOC_KERNEL_VERSION	= 'v',
+	LOCKDOC_READ			= 'r',
+	LOCKDOC_WRITE			= 'w'
+};
 
 enum LOCK_OP {
 	P_READ = 0,

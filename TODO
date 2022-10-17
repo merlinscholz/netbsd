@@ -1,0 +1,4 @@
+- SMP
+- IRQ
+- Implement all lock types
+- Memory access

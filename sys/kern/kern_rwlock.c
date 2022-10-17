@@ -53,6 +53,7 @@ __KERNEL_RCSID(0, "$NetBSD: kern_rwlock.c,v 1.54 2019/05/09 05:00:31 ozaki-r Exp
 #include <sys/atomic.h>
 #include <sys/lock.h>
 #include <sys/pserialize.h>
+#include <sys/lockdoc.h>
 
 #include <dev/lockstat.h>
 
@@ -570,6 +571,8 @@ rw_vector_tryenter(krwlock_t *rw, const krw_t op)
 	RW_DASSERT(rw, (op != RW_READER && RW_OWNER(rw) == curthread) ||
 	    (op == RW_READER && RW_COUNT(rw) != 0));
 
+
+    log_lock(P_WRITE, rw, __FILE__, __LINE__, LOCK_NONE);
 	return 1;
 }
 
