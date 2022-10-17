@@ -56,6 +56,7 @@ __KERNEL_RCSID(0, "$NetBSD: kern_mutex.c,v 1.107 2023/05/01 12:18:08 riastradh E
 #include <sys/types.h>
 #include <sys/cpu.h>
 #include <sys/pserialize.h>
+#include <sys/lockdoc.h>
 
 #include <dev/lockstat.h>
 
@@ -901,6 +902,7 @@ mutex_tryenter(kmutex_t *mtx)
 		if (MUTEX_SPINBIT_LOCK_TRY(mtx)) {
 			MUTEX_WANTLOCK(mtx);
 			MUTEX_LOCKED(mtx);
+            log_lock(P_WRITE, mtx, __FILE__, __LINE__, LOCK_NONE);
 			return 1;
 		}
 		MUTEX_SPIN_SPLRESTORE(mtx);
@@ -917,6 +919,7 @@ mutex_tryenter(kmutex_t *mtx)
 			MUTEX_LOCKED(mtx);
 			MUTEX_DASSERT(mtx,
 			    MUTEX_OWNER(mtx->mtx_owner) == curthread);
+            log_lock(P_WRITE, mtx, __FILE__, __LINE__, LOCK_NONE);
 			return 1;
 		}
 	}
