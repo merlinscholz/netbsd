@@ -28,7 +28,8 @@ static inline void log_lock(int lock_op, const void* ptr, const char *file, int 
 
     memset(&la_buffer,0,sizeof(la_buffer));
 
-    // TODO fail shows 0x016c instead of 0x6c
+    //strncpy((char *)&la_buffer, "abcdefgh", LOG_CHAR_BUFFER_LEN);
+
     // action
     la_buffer.action = LOCKDOC_LOCK_OP;
 
@@ -41,11 +42,11 @@ static inline void log_lock(int lock_op, const void* ptr, const char *file, int 
     // size only relevant for memory access
 
     // TODO type
-    //strncpy(la_buffer.type, ,LOG_CHAR_BUFFER_LEN);
+    strncpy(la_buffer.type, "dummy", LOG_CHAR_BUFFER_LEN);
 	la_buffer.type[LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
     // TODO lock_member
-    strncpy(la_buffer.lock_member,"dummy",LOG_CHAR_BUFFER_LEN);
+    strncpy(la_buffer.lock_member, "dummy", LOG_CHAR_BUFFER_LEN);
 	la_buffer.lock_member[LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
 

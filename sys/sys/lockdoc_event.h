@@ -51,7 +51,7 @@ enum IRQ_SYNC {
 };
 
 struct log_action {
-	char action;
+	enum LOCKDOC_OP action;
 	uint32_t lock_op;
 	uint32_t ptr;
 	uint32_t size;
