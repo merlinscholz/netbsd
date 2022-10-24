@@ -1,3 +1,4 @@
+- Separate LOCKDEBUG from LOCKDOC kernel opt
 - SMP
 - IRQ
 - Implement all lock types
