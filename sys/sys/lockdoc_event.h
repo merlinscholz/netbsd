@@ -1,6 +1,8 @@
 #ifndef __LOCKDOC_EVENT_H__
 #define __LOCKDOC_EVENT_H__
 
+#ifdef LOCKDOC
+
 #define LOG_CHAR_BUFFER_LEN 100
 #define PSEUDOLOCK_ADDR_RCU		0x42
 #define PSEUDOLOCK_ADDR_PREEMPT	0x43
@@ -64,5 +66,7 @@ struct log_action {
 	int32_t irq_sync;
 	int32_t flags;
 }__attribute__((packed));
+
+#endif /* LOCKDOC */
 
 #endif /* __LOCKDOC_EVENT_H__ */

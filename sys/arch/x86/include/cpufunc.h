@@ -45,7 +45,6 @@
 #ifdef _KERNEL
 #if defined(_KERNEL_OPT)
 #include "opt_xen.h"
-#include "opt_lockdebug.h"
 #endif
 
 static inline void
@@ -376,7 +375,8 @@ void x86_disable_intr(void);
 void x86_enable_intr(void);
 #else
 
-#ifdef LOCKDEBUG
+#ifdef LOCKDOC
+
 #define x86_disable_intr()	__x86_disable_intr(__FILE__, __LINE__, __func__)
 void __x86_disable_intr(const char *file, int line, const char *func);
 
@@ -386,14 +386,15 @@ static __inline void lockdoc_x86_disable_intr(void)
 }
 
 #else
+
 static inline void
 x86_disable_intr(void)
 {
 	__asm volatile ("cli" ::: "memory");
 }
-#endif /* LOCKDEBUG */
+#endif /* LOCKDOC */
 
-#ifdef LOCKDEBUG
+#ifdef LOCKDOC
 #define x86_enable_intr()	__x86_enable_intr(__FILE__, __LINE__, __func__)
 void __x86_enable_intr(const char *file, int line, const char *func);
 
@@ -408,7 +409,7 @@ x86_enable_intr(void)
 {
 	__asm volatile ("sti" ::: "memory");
 }
-#endif /* LOCKDEBUG */
+#endif /* LOCKDOC */
 
 #endif /* XENPV */
 

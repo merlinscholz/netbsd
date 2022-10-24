@@ -11,7 +11,7 @@
 #define MK_STRING(x)	#x
 #define IO_PORT_LOG	(0x00e9)
 
-#ifdef LOCKDEBUG
+#ifdef LOCKDOC
 
 extern struct log_action la_buffer;
 
@@ -72,6 +72,6 @@ static inline void log_lock(int lock_op, const void* ptr, const char *file, int 
 #else
 #define log_lock(a, b, c, d, e)
 
-#endif // !LOCKDEBUG
+#endif /* LOCKDOC */
 
-#endif // __LOCKDOC_H__
+#endif /* __LOCKDOC_H__ */
