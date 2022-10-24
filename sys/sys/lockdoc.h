@@ -2,6 +2,7 @@
 #define __LOCKDOC_H__
 
 #include <sys/types.h>
+#include <sys/systm.h>
 #include <sys/lockdoc_event.h>
 
 #define DELIMITER	"#"
