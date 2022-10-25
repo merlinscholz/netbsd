@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <sys/systm.h>
+#include <sys/lockdebug.h>
 #include <sys/lockdoc_event.h>
 
 #define DELIMITER	"#"
@@ -14,6 +15,18 @@
 #ifdef LOCKDOC
 
 extern struct log_action la_buffer;
+
+
+// For DEFINEs in lockdebug.h
+// Implemented in lockdoc/log.c
+bool	lockdoc_alloc(const char *, size_t, volatile void *, lockops_t *, uintptr_t);
+void	lockdoc_free(bool, const char *, size_t, volatile void *);
+void	lockdoc_wantlock(bool, const char *, size_t, const volatile void *, uintptr_t, int);
+void	lockdoc_locked(bool, const char *, size_t, volatile void *, void *, uintptr_t, int);
+void	lockdoc_unlocked(bool, const char *, size_t, volatile void *, uintptr_t, int);
+void	lockdoc_barrier(const char *, size_t, volatile void *, int);
+void	lockdoc_mem_check(const char *, size_t, void *, size_t);
+void	lockdoc_wakeup(bool, const char *, size_t, volatile void *, uintptr_t);
 
 /* Basic port I/O */
 static inline void outb_(u_int8_t v, u_int16_t port)
