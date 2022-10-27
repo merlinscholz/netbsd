@@ -62,7 +62,6 @@ __KERNEL_RCSID(0, "$NetBSD: kern_rwlock.c,v 1.70 2023/02/24 11:11:10 riastradh E
 #include <sys/atomic.h>
 #include <sys/lock.h>
 #include <sys/pserialize.h>
-#include <sys/lockdoc.h>
 
 #include <dev/lockstat.h>
 
@@ -575,8 +574,6 @@ rw_vector_tryenter(krwlock_t *rw, const krw_t op)
 	    (op == RW_READER && RW_COUNT(rw) != 0));
 
 	membar_acquire();
-
-    	log_lock(P_WRITE, rw, __FILE__, __LINE__, LOCK_NONE);
 	return 1;
 }
 
