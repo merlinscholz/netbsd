@@ -39,10 +39,10 @@ enum LOCKDOC_OP {
 };
 
 enum LOCK_OP {
-	P_READ = 0,
-	P_WRITE,
-	V_READ,
-	V_WRITE
+	P_READ = 0, // Take shared lock
+	P_WRITE,    // Take excl.  lock
+	V_READ,     // Free shared lock
+	V_WRITE     // Free excl.  lock
 };
 
 enum IRQ_SYNC {
