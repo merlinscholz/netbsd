@@ -52,7 +52,9 @@ typedef	struct lockops {
 	void		(*lo_dump)(const volatile void *, lockop_printer_t);
 } lockops_t;
 
+#ifdef LOCKDOC
 #include <sys/lockdoc.h> // Has to be included *after* lockops_t definition
+#endif /* LOCKDOC */
 
 #define	LOCKDEBUG_ABORT(f, ln, l, o, m) \
     lockdebug_abort(f, ln, l, o, m)
@@ -67,7 +69,7 @@ void	lockdebug_show_all_locks(void (*)(const char *, ...) __printflike(1, 2),
 	    const char *);
 void	lockdebug_show_lockstats(void (*)(const char *, ...) __printflike(1, 2));
 
-#if defined(LOCKDEBUG) && defined(LOCKDOC)
+#ifdef LOCKDEBUG
 
 bool	lockdebug_alloc(const char *, size_t, volatile void *, lockops_t *,
     uintptr_t);
@@ -81,6 +83,10 @@ void	lockdebug_unlocked(const char *, size_t, volatile void *,
 void	lockdebug_barrier(const char *, size_t, volatile void *, int);
 void	lockdebug_mem_check(const char *, size_t, void *, size_t);
 void	lockdebug_wakeup(const char *, size_t, volatile void *, uintptr_t);
+
+#endif
+
+#if defined(LOCKDEBUG) && defined(LOCKDOC)
 
 #define	LOCKDEBUG_ALLOC(lock, ops, addr) \
     lockdebug_alloc(__func__, __LINE__, lock, ops, addr); \
@@ -109,19 +115,6 @@ void	lockdebug_wakeup(const char *, size_t, volatile void *, uintptr_t);
 
 #elif defined(LOCKDEBUG) && !defined(LOCKDOC)
 
-bool	lockdebug_alloc(const char *, size_t, volatile void *, lockops_t *,
-    uintptr_t);
-void	lockdebug_free(const char *, size_t, volatile void *);
-void	lockdebug_wantlock(const char *, size_t, const volatile void *,
-    uintptr_t, int);
-void	lockdebug_locked(const char *, size_t, volatile void *, void *,
-    uintptr_t, int);
-void	lockdebug_unlocked(const char *, size_t, volatile void *,
-    uintptr_t, int);
-void	lockdebug_barrier(const char *, size_t, volatile void *, int);
-void	lockdebug_mem_check(const char *, size_t, void *, size_t);
-void	lockdebug_wakeup(const char *, size_t, volatile void *, uintptr_t);
-
 #define	LOCKDEBUG_ALLOC(lock, ops, addr) \
     lockdebug_alloc(__func__, __LINE__, lock, ops, addr)
 #define	LOCKDEBUG_FREE(dodebug, lock) \
@@ -142,6 +135,7 @@ void	lockdebug_wakeup(const char *, size_t, volatile void *, uintptr_t);
 #elif !defined(LOCKDEBUG) && defined(LOCKDOC)
 
 #define	LOCKDEBUG_ALLOC(lock, ops, addr) \
+    false; \
     lockdoc_alloc(__func__, __FILE__, __LINE__, lock, ops, addr)
 #define	LOCKDEBUG_FREE(dodebug, lock) \
     lockdoc_free(__func__, __FILE__, __LINE__, lock)

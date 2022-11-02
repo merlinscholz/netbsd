@@ -379,11 +379,7 @@ void x86_enable_intr(void);
 
 #define x86_disable_intr()	__x86_disable_intr(__FILE__, __LINE__, __func__)
 void __x86_disable_intr(const char *file, int line, const char *func);
-
-static __inline void lockdoc_x86_disable_intr(void)
-{
-	__asm volatile ("cli" ::: "memory");
-}
+void lockdoc_x86_disable_intr(void);
 
 #else
 
@@ -397,11 +393,7 @@ x86_disable_intr(void)
 #ifdef LOCKDOC
 #define x86_enable_intr()	__x86_enable_intr(__FILE__, __LINE__, __func__)
 void __x86_enable_intr(const char *file, int line, const char *func);
-
-static __inline void lockdoc_x86_enable_intr(void)
-{
-	__asm volatile ("sti" ::: "memory");
-}
+void lockdoc_x86_enable_intr(void);
 
 #else
 static inline void

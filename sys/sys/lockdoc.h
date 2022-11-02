@@ -86,6 +86,7 @@ static inline void log_lock(int lock_op, const volatile void* ptr, const char *f
     x86_write_flags(eflags);
 }
 #else
+#define log_memory(a, b, c, d)
 #define log_lock(a, b, c, d, e)
 
 #endif /* LOCKDOC */
