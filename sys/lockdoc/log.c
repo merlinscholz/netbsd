@@ -53,6 +53,10 @@ void __x86_disable_intr(const char *file, int line, const char *func){
     lockdoc_x86_disable_intr();
 }
 
+void lockdoc_x86_disable_intr(void){
+	__asm volatile ("cli" ::: "memory");
+}
+
 void __x86_enable_intr(const char *file, int line, const char *func){
     u_long eflags;
     
@@ -60,7 +64,10 @@ void __x86_enable_intr(const char *file, int line, const char *func){
     if (!(eflags & (1 << 9))){  // Check if interrupts were disabled in the first place
 		log_lock(V_WRITE, (void*)PSEUDOLOCK_ADDR_HARDIRQ, file, line, LOCK_NONE); 
     }
-    lockdoc_x86_disable_intr();
+    lockdoc_x86_enable_intr();
 }
 
+void lockdoc_x86_enable_intr(void){
+	__asm volatile ("sti" ::: "memory");
+}
 #endif /* LOCKDOC */
