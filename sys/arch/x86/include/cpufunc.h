@@ -375,34 +375,17 @@ void x86_disable_intr(void);
 void x86_enable_intr(void);
 #else
 
-#ifdef LOCKDOC
-
-#define x86_disable_intr()	__x86_disable_intr(__FILE__, __LINE__, __func__)
-void __x86_disable_intr(const char *file, int line, const char *func);
-void lockdoc_x86_disable_intr(void);
-
-#else
-
 static inline void
 x86_disable_intr(void)
 {
 	__asm volatile ("cli" ::: "memory");
 }
-#endif /* LOCKDOC */
 
-#ifdef LOCKDOC
-#define x86_enable_intr()	__x86_enable_intr(__FILE__, __LINE__, __func__)
-void __x86_enable_intr(const char *file, int line, const char *func);
-void lockdoc_x86_enable_intr(void);
-
-#else
 static inline void
 x86_enable_intr(void)
 {
 	__asm volatile ("sti" ::: "memory");
 }
-#endif /* LOCKDOC */
-
 #endif /* XENPV */
 
 /* Use read_psl, write_psl when saving and restoring interrupt state. */
