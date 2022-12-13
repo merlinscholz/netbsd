@@ -224,7 +224,7 @@ options 	WSDISPLAY_CUSTOM_OUTPUT	# color customization from wsconsctl(8)
 #options 	WS_DEFAULT_BG=WSCOL_BLACK
 #options 	WS_DEFAULT_COLATTR="(0)"
 #options 	WS_DEFAULT_MONOATTR="(0)"
-options 	WS_KERNEL_FG=WSCOL_BLUE
+options 	WS_KERNEL_FG=WSCOL_RED
 #options 	WS_KERNEL_BG=WSCOL_BLACK
 #options 	WS_KERNEL_COLATTR=""
 #options 	WS_KERNEL_MONOATTR=""
