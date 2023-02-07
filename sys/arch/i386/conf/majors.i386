@@ -108,6 +108,8 @@ device-major	ct		char 106 block 23	ct
 device-major	mt		char 107 block 24	mt
 #device-major	obsolete	char 108 block 25	obsolete (vinum, pf)
 #device-major	obsolete	char 108		obsolete (opencrypto, bthub)
+#device-major    lockdoc_ctl    char    138 lockdoc
+#device-major    lockdoc_iter   char    139 lockdoc
 
 # Reserve a major for VirtualBox Guest Additions
 device-major	vboxguest	char 109		vboxguest
