@@ -44,6 +44,8 @@ fi
 #
 trap '' INT QUIT
 
+/usr/pkg/bin/bash /lockdoc/boot.init.bash.sh
+
 #
 # This string will be used to mark lines of meta-data sent over the pipe
 # from the rc_real_work() function to the rc_postprocess() function.  Lines

@@ -902,8 +902,11 @@ pmap_kenter_pa(vaddr_t va, paddr_t pa, vm_prot_t prot, u_int flags)
 	KASSERTMSG(!(opte & PTE_PS), "PTE_PS va=%#"PRIxVADDR, va);
 
 	if ((opte & (PTE_P | PTE_A)) == (PTE_P | PTE_A)) {
+/* Disable the warning message during LOCKDOC tests since it makes the console unusable */
+#ifndef LOCKDOC
 		/* This should not happen. */
 		printf_nolog("%s: mapping already present\n", __func__);
+#endif
 		kpreempt_disable();
 		pmap_tlb_shootdown(pmap_kernel(), va, opte, TLBSHOOT_KENTER);
 		kpreempt_enable();
