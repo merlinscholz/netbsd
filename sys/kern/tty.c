@@ -127,8 +127,13 @@ const char	ttyout[] = "ttyout";
  * 2) It's a locally attached terminal, and we are therefore ignoring carrier.
  * 3) We're using a flow control mechanism that overloads the carrier signal.
  */
+#ifndef LOCKDOC
 #define	CONNECTED(tp)	(ISSET(tp->t_state, TS_CARR_ON) ||	\
 			 ISSET(tp->t_cflag, CLOCAL | MDMBUF))
+#else
+/* Circumvent Bochs' interesting com* implementation */
+#define	CONNECTED(tp)	true
+#endif
 
 /*
  * Table with character classes and parity. The 8th bit indicates parity,
