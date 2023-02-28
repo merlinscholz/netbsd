@@ -16,7 +16,6 @@
 #define DEV_FILE_ITER_NAME		"iterations"
 #define DEFAULT_ITERATIONS	LOCKDOC_TEST_ITERATIONS
 
-#define TSLEEP_TIMEOUT		120000
 #define MS_TO_HZ(x)		((x) * hz / 1000)
 /*
  * For some reasons, our ring buffer (aka BSB ring buffer)
@@ -358,8 +357,8 @@ static void start_and_wait_thread(const char *fn_name, void (*work_fn)(void*)) {
 	if (error) {
 		return;
 	}
-	printf("%s: Waiting for %s thread to terminate...\n", __func__, fn_name);
-	error = tsleep(temp, 0, "ldctl", MS_TO_HZ(TSLEEP_TIMEOUT));
+	printf("%s: Waiting for %s thread (%d) to terminate...\n", __func__, fn_name, temp->l_lid);
+	error = tsleep(temp, 0, "ldctl", 0);
 	if (error) {
 		printf("%s: Error waiting for %s thread\n", __func__, fn_name);
 	} else {
@@ -435,7 +434,7 @@ int lockdoc_ctl_write(dev_t self, struct uio *uio, int flags){
 
 		uprintf("%s: Waiting for control_thread to terminate...\n", __func__);
 		// This will block the caller until all threads terminated
-		error = tsleep(control_thread, 0, "ldctl", MS_TO_HZ(TSLEEP_TIMEOUT));
+		error = tsleep(control_thread, 0, "ldctl", 0);
 		if (error) {
 			uprintf("%s: Wait for control thread timed out\n", __func__);
 			return (error);
