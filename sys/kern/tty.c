@@ -134,7 +134,7 @@ const char	ttyout[] = "ttyout";
 #define	CONNECTED(tp)	(ISSET(tp->t_state, TS_CARR_ON) ||	\
 			 ISSET(tp->t_cflag, CLOCAL | MDMBUF))
 #else
-/* Circumvent Bochs' interesting com* implementation */
+/* Circumvent Bochs' interesting com* implementation that basically has CD stubbed out */
 #define	CONNECTED(tp)	true
 #endif
 
