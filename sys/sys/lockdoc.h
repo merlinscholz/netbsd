@@ -16,6 +16,12 @@
 
 #ifdef LOCKDOC
 
+int32_t lockdoc_get_ctx(void);
+void lockdoc_x86_restore_intr(u_long eflags);
+
+void trace_irqs_on(struct trapframe *frame);
+void trace_irqs_off(struct trapframe *frame);
+
 extern struct log_action la_buffer;
 
 
@@ -37,7 +43,30 @@ static inline void outb_(u_int8_t v, u_int16_t port)
 }
 
 static inline void log_memory(int alloc, const char *datatype, const void *ptr, size_t size) {
+    register_t flags;
+	
+	flags = lockdoc_x86_disable_intr();
 
+	memset(&la_buffer,0,sizeof(la_buffer));
+
+	la_buffer.action = (alloc == 1 ? LOCKDOC_ALLOC : LOCKDOC_FREE);
+	la_buffer.ptr = (unsigned long)ptr;
+	la_buffer.size = size;
+	la_buffer.ctx = lockdoc_get_ctx();
+
+	/*
+	 * One could use a more safe string function, e.g., strlcpy. 
+	 * However, we want these *log* functions to be fast.
+	 * We therefore skip all sanity checks, and all that stuff.
+	 * To ensure any string buffer contains a valid string, we
+	 * always write a NULL byte at its end.
+	 */
+	strncpy(la_buffer.type,datatype,LOG_CHAR_BUFFER_LEN);
+	la_buffer.type[LOG_CHAR_BUFFER_LEN - 1] = '\0';
+
+	outb_(PING_CHAR,IO_PORT_LOG);
+
+	lockdoc_x86_restore_intr(flags);
 }
 
 static inline void log_lock(int lock_op, const volatile void* ptr, const char *file, int line, int irq_sync) {
@@ -52,6 +81,9 @@ static inline void log_lock(int lock_op, const volatile void* ptr, const char *f
 
     // operation
     la_buffer.lock_op = lock_op;
+
+    // context
+    la_buffer.ctx = lockdoc_get_ctx();
 
     // pointer
     la_buffer.ptr = (unsigned long)ptr;
@@ -85,6 +117,12 @@ static inline void log_lock(int lock_op, const volatile void* ptr, const char *f
 
     x86_write_flags(eflags);
 }
+
+void lockdoc_send_current_task_addr(void);
+void lockdoc_send_lwp_flag_offset(void);
+void lockdoc_send_pid_offset(void);
+void lockdoc_send_kernel_version(void);
+
 #else
 #define log_memory(a, b, c, d)
 #define log_lock(a, b, c, d, e)

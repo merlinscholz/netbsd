@@ -35,7 +35,9 @@ enum LOCKDOC_OP {
 	LOCKDOC_PID_OFFSET		= 'o',
 	LOCKDOC_KERNEL_VERSION	= 'v',
 	LOCKDOC_READ			= 'r',
-	LOCKDOC_WRITE			= 'w'
+	LOCKDOC_WRITE			= 'w',
+	LOCKDOC_IRQ_NEST_OFFSET = 'n',
+	LOCKDOC_LWP_FLAG_OFFSET = 'g'
 };
 
 enum LOCK_OP {
@@ -54,6 +56,7 @@ enum IRQ_SYNC {
 
 struct log_action {
 	enum LOCKDOC_OP action;
+	int32_t ctx;
 	uint32_t lock_op;
 	uint32_t ptr;
 	uint32_t size;
