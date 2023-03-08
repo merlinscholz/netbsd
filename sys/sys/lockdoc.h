@@ -43,7 +43,7 @@ static inline void outb_(u_int8_t v, u_int16_t port)
 }
 
 static inline void log_memory(int alloc, const char *datatype, const void *ptr, size_t size) {
-    register_t flags;
+    u_long flags;
 	
 	flags = lockdoc_x86_disable_intr();
 
