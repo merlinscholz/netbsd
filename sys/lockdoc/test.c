@@ -16,7 +16,6 @@
 #define DEV_FILE_ITER_NAME		"iterations"
 #define DEFAULT_ITERATIONS	LOCKDOC_TEST_ITERATIONS
 
-#define MS_TO_HZ(x)		((x) * hz / 1000)
 /*
  * For some reasons, our ring buffer (aka BSB ring buffer)
  * can only hold size - 1 elements.
@@ -32,8 +31,6 @@
 #define RING_BUFFER_STORAGE_TYPE int
 #define MK_STRING(x)    #x
 #define START_AND_WAIT_THREAD(x)	start_and_wait_thread(MK_STRING(x), x)
-
-static const wchan_t pause_wchan[MAXCPUS];
 
 dev_type_open(lockdoc_ctl_open);
 dev_type_close(lockdoc_ctl_close);
@@ -120,25 +117,34 @@ static __noinline RING_BUFFER_STORAGE_TYPE consume(volatile struct lockdoc_ring_
 }
 
 int lockdoc_ctl_open(dev_t self __unused, int flag __unused, int mode __unused,
-          struct lwp *l __unused)
+          lwp_t *l __unused)
 {
     return 0;
 }
 
 int lockdoc_ctl_close(dev_t self __unused, int flag __unused, int mode __unused,
-           struct lwp *l __unused)
+           lwp_t *l __unused)
 {
     return 0;
 }
 
+/*
+ *	Stub out this method, otherwise (accidentaly) reading from /dev/lockdoc/control causes a kernel panic
+ */
+int lockdoc_ctl_read(dev_t self __unused, struct uio *uio __unused,
+			int flags __unused)
+{
+	return 0;
+}
+
 int lockdoc_iter_open(dev_t self __unused, int flag __unused, int mode __unused,
-          struct lwp *l __unused)
+          lwp_t *l __unused)
 {
     return 0;
 }
 
 int lockdoc_iter_close(dev_t self __unused, int flag __unused, int mode __unused,
-           struct lwp *l __unused)
+           lwp_t *l __unused)
 {
     return 0;
 }
@@ -167,9 +173,7 @@ static void producer_thread_work(void *data) {
 		mutex_exit(&rb_lock);
 		printf("%s-%03d: Produced(%d): %03d\n", __func__, i, ret, i + 30);
 
-		//pause("W", MS_TO_HZ(100));
-		tsleep(&pause_wchan[cpu_number()], 0, "W", MS_TO_HZ(100));
-
+		kpause("W", false, mstohz(100), NULL);
 	}
 
 	kthread_exit(0);
@@ -193,8 +197,8 @@ static void consumer_thread_work(void *data) {
 		mutex_exit(&rb_lock);
 		printf("%s-%03d: Consumed: %03d\n", __func__, i, ret);
 
-		//pause("W", MS_TO_HZ(100));
-		tsleep(&pause_wchan[cpu_number()], 0, "W", MS_TO_HZ(100));
+		kpause("W", false, mstohz(100), NULL);
+
 	}
 
 	kthread_exit(0);
@@ -207,8 +211,8 @@ static void dirty_nolocks_thread_work(void *data) {
 	 * Wait a bit. Otherwise the call to tsleep() in control_thread_work() will wait for ever,
 	 * because this thread has terminated and the caller will not be notified.
 	 */
-	//pause("W", MS_TO_HZ(500));
-	tsleep(&pause_wchan[cpu_number()], 0, "W", MS_TO_HZ(500));
+	kpause("W", false, mstohz(500), NULL);
+
 	
 	ret = is_full(ring_buffer);
 	if (ret) {
@@ -236,8 +240,8 @@ static void dirty_fewlocks_thread_work(void *data) {
 	 * Wait a bit. Otherwise the call to tsleep() in control_thread_work() will wait for ever,
 	 * because this thread has terminated and the caller will not be notified.
 	 */
-	//pause("W", MS_TO_HZ(500));
-	tsleep(&pause_wchan[cpu_number()], 0, "W", MS_TO_HZ(500));
+	kpause("W", false, mstohz(500), NULL);
+
 
 	mutex_enter(&rb_lock);
 	ret = is_full(ring_buffer);
@@ -273,8 +277,8 @@ static void dirty_alllocks_thread_work(void *data) {
 	 * Wait a bit. Otherwise the call to tsleep() in control_thread_work() will wait for ever,
 	 * because this thread has terminated and the caller will not be notified.
 	 */
-	//pause("W", MS_TO_HZ(500));
-	tsleep(&pause_wchan[cpu_number()], 0, "W", MS_TO_HZ(500));
+	kpause("W", false, mstohz(500), NULL);
+
 
 	mutex_enter(&producer_lock);
 	mutex_enter(&consumer_lock);
@@ -326,8 +330,8 @@ static void dirty_order_thread_work(void *data) {
 	 * Wait a bit. Otherwise the call to tsleep() in control_thread_work() will wait for ever,
 	 * because this thread has terminated and the caller will not be notified.
 	 */
-	//pause("W", MS_TO_HZ(500));
-	tsleep(&pause_wchan[cpu_number()], 0, "W", MS_TO_HZ(500));
+	kpause("W", false, mstohz(500), NULL);
+
 
 	mutex_enter(&rb_lock);
 	mutex_enter(&producer_lock);
@@ -351,14 +355,14 @@ static void start_and_wait_thread(const char *fn_name, void (*work_fn)(void*)) {
 	int error;
 	
 	printf("%s: Starting %s thread...\n", __func__, fn_name);	
-	//error = kthread_create(work_fn, NULL, &temp,0, 0, "lockdoc-control");
-	error = kthread_create(PRI_NONE, 0, NULL, work_fn, NULL, &temp, "lockdoc-control");
+	error = kthread_create(PRI_NONE, KTHREAD_MUSTJOIN | KTHREAD_MPSAFE, NULL, work_fn, NULL, &temp, "lockdoc-control");
 	
 	if (error) {
 		return;
 	}
 	printf("%s: Waiting for %s thread (%d) to terminate...\n", __func__, fn_name, temp->l_lid);
-	error = tsleep(temp, 0, "ldctl", 0);
+	error = kthread_join(temp);
+
 	if (error) {
 		printf("%s: Error waiting for %s thread\n", __func__, fn_name);
 	} else {
@@ -397,11 +401,6 @@ static void control_thread_work(void *data) {
 	kthread_exit(0);
 }
 
-// Stub out this method, otherwise (accidentaly) reading from /dev/lockdoc/control causes a kernel panic
-int lockdoc_ctl_read(dev_t self, struct uio *uio, int flags){
-	return 0;
-}
-
 #define BUFSIZE	5
 int lockdoc_ctl_write(dev_t self, struct uio *uio, int flags){
 
@@ -423,18 +422,16 @@ int lockdoc_ctl_write(dev_t self, struct uio *uio, int flags){
 	/* parse input */
 	value = strtoul(buffer, NULL, 10);
 	if (value == 1) {
-		//error = kthread_create(control_thread_work, NULL, &control_thread,0, 0, "lockdoc-control");
-		error = kthread_create(PRI_NONE, 0, NULL, control_thread_work, NULL, &control_thread, "lockdoc-control");
+		error = kthread_create(PRI_NONE, KTHREAD_MUSTJOIN | KTHREAD_MPSAFE, NULL, control_thread_work, NULL, &control_thread, "lockdoc-control");
 		if (error) {
 			return (error);
 		}
 
-		//pause("W", MS_TO_HZ(200));
-		tsleep(&pause_wchan[cpu_number()], 0, "W", MS_TO_HZ(500));
+		kpause("W", false, mstohz(200), NULL);
 
 		uprintf("%s: Waiting for control_thread to terminate...\n", __func__);
 		// This will block the caller until all threads terminated
-		error = tsleep(control_thread, 0, "ldctl", 0);
+		error = kthread_join(control_thread);
 		if (error) {
 			uprintf("%s: Wait for control thread timed out\n", __func__);
 			return (error);
@@ -540,5 +537,3 @@ static int lockdoc_test_modcmd(modcmd_t what, void *arg __unused)
 	}
 	return (error);
 }
-
-// Loosely based on http://cvsweb.netbsd.org/bsdweb.cgi/~checkout~/src/sys/modules/examples/readhappy/readhappy.c?rev=1.1&content-type=text/plain&only_with_tag=MAIN
