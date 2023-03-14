@@ -226,6 +226,10 @@ extern void *_binary_splash_image_end;
 
 #include <sys/userconf.h>
 
+#ifdef LOCKDOC
+#include <sys/lockdoc.h>
+#endif
+
 extern struct lwp lwp0;
 extern time_t rootfstime;
 
@@ -623,6 +627,13 @@ main(void)
 	procinit_sysctl();
 
 	scdebug_init();
+
+#ifdef LOCKDOC
+	lockdoc_send_current_task_addr();
+	lockdoc_send_lwp_flag_offset();
+	lockdoc_send_pid_offset();
+	lockdoc_send_kernel_version();
+#endif
 
 	/*
 	 * Create process 1 (init(8)).  We do this now, as Unix has
