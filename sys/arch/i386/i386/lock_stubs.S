@@ -65,7 +65,11 @@ __KERNEL_RCSID(0, "$NetBSD: lock_stubs.S,v 1.38 2022/09/08 06:57:44 knakahara Ex
  */
 	ALIGN64
 
+#ifdef LOCKDOC
+ENTRY(_mutex_enter)
+#else
 ENTRY(mutex_enter)
+#endif
 	movl	4(%esp), %edx
 	xorl	%eax, %eax
 	movl	%fs:CPU_INFO_CURLWP(%eax), %ecx
@@ -75,7 +79,11 @@ ENTRY(mutex_enter)
 	RET(1)
 1:
 	jmp	_C_LABEL(mutex_vector_enter)
+#ifdef LOCKDOC
+END(_mutex_enter)
+#else
 END(mutex_enter)
+#endif
 
 /*
  * void mutex_exit(kmutex_t *mtx);
@@ -86,7 +94,11 @@ END(mutex_enter)
  * on multiprocessor systems, and comments in arch/x86/include/lock.h about
  * memory ordering on Intel x86 systems.
  */
+#ifdef LOCKDOC
+ENTRY(_mutex_exit)
+#else
 ENTRY(mutex_exit)
+#endif
 	movl	4(%esp), %edx
 	xorl	%ecx, %ecx
 	movl	%fs:CPU_INFO_CURLWP(%ecx), %eax
@@ -95,7 +107,11 @@ ENTRY(mutex_exit)
 	ret
 1:
 	jmp	_C_LABEL(mutex_vector_exit)
+#ifdef LOCKDOC
+END(_mutex_exit)
+#else
 END(mutex_exit)
+#endif
 
 /*
  * void rw_enter(krwlock_t *rwl, krw_t op);
@@ -229,7 +245,11 @@ END(rw_tryenter)
  *
  * Acquire a spin mutex and post a load fence.
  */
+#ifdef LOCKDOC
+ENTRY(_mutex_spin_enter)
+#else
 ENTRY(mutex_spin_enter)
+#endif
 	movl	4(%esp), %edx
 	movb	CPUVAR(ILEVEL), %cl
 	movb	MTX_IPL(%edx), %ch
@@ -251,14 +271,26 @@ ENTRY(mutex_spin_enter)
 
 	ALIGN64
 LABEL(mutex_spin_enter_end)
+#ifdef LOCKDOC
+END(_mutex_spin_enter)
+#else
 END(mutex_spin_enter)
+#endif
 
 #ifndef XENPV
 /*
  * Release a spin mutex and post a store fence. Must occupy 128 bytes.
  */
+#ifdef LOCKDOC
+ENTRY(_mutex_spin_exit)
+#else
 ENTRY(mutex_spin_exit)
-	HOTPATCH(HP_NAME_MUTEX_EXIT, 128)
+/*
+ * This is disabled for LOCKDEBUG so we might as well keep it disabled
+ * for LOCKDOC too
+ */
+HOTPATCH(HP_NAME_MUTEX_EXIT, 128)	
+#endif
 	movl	4(%esp), %edx
 	movl	CPUVAR(MTX_OLDSPL), %ecx
 	incl	CPUVAR(MTX_COUNT)
@@ -277,7 +309,12 @@ ENTRY(mutex_spin_exit)
 1:	ret
 	.space	32, 0xCC
 	.align	32
+#ifdef LOCKDOC
+END(_mutex_spin_exit)
+#else
 END(mutex_spin_exit)
+#endif
+
 #else  /* XENPV */
 STRONG_ALIAS(mutex_spin_exit, i686_mutex_spin_exit)
 #endif	/* !XENPV */

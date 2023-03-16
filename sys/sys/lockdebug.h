@@ -51,10 +51,6 @@ typedef	struct lockops {
 	void		(*lo_dump)(const volatile void *, lockop_printer_t);
 } lockops_t;
 
-#ifdef LOCKDOC
-#include <sys/lockdoc.h> // Has to be included *after* lockops_t definition
-#endif /* LOCKDOC */
-
 #define	LOCKDEBUG_ABORT(f, ln, l, o, m) \
     lockdebug_abort(f, ln, l, o, m)
 
@@ -83,49 +79,6 @@ void	lockdebug_barrier(const char *, size_t, volatile void *, int);
 void	lockdebug_mem_check(const char *, size_t, void *, size_t);
 void	lockdebug_wakeup(const char *, size_t, volatile void *, uintptr_t);
 
-#endif
-
-#if defined(LOCKDEBUG) && defined(LOCKDOC)
-
-#define	LOCKDEBUG_ALLOC(lock, ops, addr) \
-    lockdebug_alloc(__func__, __LINE__, lock, ops, addr); \
-    lockdoc_alloc(__func__, __FILE__, __LINE__, lock, ops, addr)
-#define	LOCKDEBUG_FREE(dodebug, lock) \
-    if (dodebug) lockdebug_free(__func__, __LINE__, lock); \
-    lockdoc_free(__func__, __FILE__, __LINE__, lock)
-#define	LOCKDEBUG_WANTLOCK(dodebug, lock, where, s) \
-    if (dodebug) lockdebug_wantlock(__func__, __LINE__, lock, where, s); \
-    lockdoc_wantlock(__func__, __FILE__, __LINE__, lock, where, s)
-#define	LOCKDEBUG_LOCKED(dodebug, lock, al, where, s) \
-    if (dodebug) lockdebug_locked(__func__, __LINE__, lock, al, where, s); \
-    lockdoc_locked(__func__, __FILE__, __LINE__, lock, al, where, s)
-#define	LOCKDEBUG_UNLOCKED(dodebug, lock, where, s) \
-    if (dodebug) lockdebug_unlocked(__func__, __LINE__, lock, where, s); \
-    lockdoc_unlocked(__func__, __FILE__, __LINE__, lock, where, s)
-#define	LOCKDEBUG_BARRIER(lock, slp) \
-    lockdebug_barrier(__func__, __LINE__, lock, slp); \
-    lockdoc_barrier(__func__, __FILE__, __LINE__, lock, slp)
-#define	LOCKDEBUG_MEM_CHECK(base, sz)	\
-    lockdebug_mem_check(__func__, __LINE__, base, sz); \
-    lockdoc_mem_check(__func__, __FILE__, __LINE__, base, sz)
-#define	LOCKDEBUG_WAKEUP(dodebug, lock, where)	\
-    if (dodebug) lockdebug_wakeup(__func__, __LINE__, lock, where); \
-    lockdoc_wakeup(__func__, __FILE__, __LINE__, lock, where)
-
-#elif defined(LOCKDEBUG) && !defined(LOCKDOC)
-
-bool	lockdebug_alloc(const char *, size_t, volatile void *, lockops_t *,
-    uintptr_t);
-void	lockdebug_free(const char *, size_t, volatile void *);
-void	lockdebug_wantlock(const char *, size_t, const volatile void *,
-    uintptr_t, int);
-void	lockdebug_locked(const char *, size_t, volatile void *, void *,
-    uintptr_t, int);
-void	lockdebug_unlocked(const char *, size_t, volatile void *,
-    uintptr_t, int);
-void	lockdebug_barrier(const char *, size_t, volatile void *, int);
-void	lockdebug_mem_check(const char *, size_t, void *, size_t);
-
 #define	LOCKDEBUG_ALLOC(lock, ops, addr) \
     lockdebug_alloc(__func__, __LINE__, lock, ops, addr)
 #define	LOCKDEBUG_FREE(dodebug, lock) \
@@ -141,27 +94,7 @@ void	lockdebug_mem_check(const char *, size_t, void *, size_t);
 #define	LOCKDEBUG_MEM_CHECK(base, sz)	\
     lockdebug_mem_check(__func__, __LINE__, base, sz)
 
-#elif !defined(LOCKDEBUG) && defined(LOCKDOC)
-
-#define	LOCKDEBUG_ALLOC(lock, ops, addr) \
-    false; \
-    lockdoc_alloc(__func__, __FILE__, __LINE__, lock, ops, addr)
-#define	LOCKDEBUG_FREE(dodebug, lock) \
-    lockdoc_free(__func__, __FILE__, __LINE__, lock)
-#define	LOCKDEBUG_WANTLOCK(dodebug, lock, where, s) \
-    lockdoc_wantlock(__func__, __FILE__, __LINE__, lock, where, s)
-#define	LOCKDEBUG_LOCKED(dodebug, lock, al, where, s) \
-    lockdoc_locked(__func__, __FILE__, __LINE__, lock, al, where, s)
-#define	LOCKDEBUG_UNLOCKED(dodebug, lock, where, s) \
-    lockdoc_unlocked(__func__, __FILE__, __LINE__, lock, where, s)
-#define	LOCKDEBUG_BARRIER(lock, slp) \
-    lockdoc_barrier(__func__, __FILE__, __LINE__, lock, slp)
-#define	LOCKDEBUG_MEM_CHECK(base, sz)	\
-    lockdoc_mem_check(__func__, __FILE__, __LINE__, base, sz)
-#define	LOCKDEBUG_WAKEUP(dodebug, lock, where)	\
-    lockdoc_wakeup(__func__, __FILE__, __LINE__, lock, where)
-
-#else	/* !LOCKDEBUG && !LOCKDOC */
+#else	/* LOCKDEBUG */
 
 #define	LOCKDEBUG_ALLOC(lock, ops, addr)		false
 #define	LOCKDEBUG_FREE(dodebug, lock)			/* nothing */
@@ -171,6 +104,6 @@ void	lockdebug_mem_check(const char *, size_t, void *, size_t);
 #define	LOCKDEBUG_BARRIER(lock, slp)			/* nothing */
 #define	LOCKDEBUG_MEM_CHECK(base, sz)			/* nothing */
 
-#endif	/* LOCKDEBUG && LOCKDOC */
+#endif	/* LOCKDEBUG */
 
 #endif	/* __SYS_LOCKDEBUG_H__ */

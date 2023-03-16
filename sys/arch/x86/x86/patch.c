@@ -329,7 +329,7 @@ x86_patch(bool early)
 	if (!early && (cpu_feature[0] & CPUID_CX8) != 0) {
 		/* Faster splx(), mutex_spin_exit(). */
 		x86_hotpatch(HP_NAME_SPLLOWER, 0);
-#if !defined(LOCKDEBUG)
+#if !defined(LOCKDEBUG) && !defined(LOCKDOC)
 		x86_hotpatch(HP_NAME_MUTEX_EXIT, 0);
 #endif
 	}
