@@ -95,12 +95,23 @@ int	rw_vector_tryenter(krwlock_t *, const krw_t);
 
 #include <machine/rwlock.h>
 
+/*
+ * This import is needed so that the mutex_ are being defined
+ * without having to add the lockdoc.h import to every single+
+ * file where mutex_functions are being called.
+ */
+#ifdef LOCKDOC
+#include <sys/lockdoc.h>
+#endif
+
 #ifdef _KERNEL
 
 void	rw_init(krwlock_t *);
 void	rw_destroy(krwlock_t *);
 
+#ifndef LOCKDOC
 int	rw_tryenter(krwlock_t *, const krw_t);
+#endif
 int	rw_tryupgrade(krwlock_t *);
 void	rw_downgrade(krwlock_t *);
 
@@ -108,8 +119,10 @@ int	rw_read_held(krwlock_t *);
 int	rw_write_held(krwlock_t *);
 int	rw_lock_held(krwlock_t *);
 
+#ifndef LOCKDOC
 void	rw_enter(krwlock_t *, const krw_t);
 void	rw_exit(krwlock_t *);
+#endif
 
 void	rw_obj_init(void);
 krwlock_t *rw_obj_alloc(void);

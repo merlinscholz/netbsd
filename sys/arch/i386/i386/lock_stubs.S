@@ -118,7 +118,11 @@ END(mutex_exit)
  *
  * Acquire one hold on a RW lock.
  */
+#ifdef LOCKDOC
+ENTRY(_rw_enter)
+#else
 ENTRY(rw_enter)
+#endif
 	movl	4(%esp), %edx
 	cmpl	$RW_READER, 8(%esp)
 	jne	2f
@@ -150,14 +154,21 @@ ENTRY(rw_enter)
 	RET(3)
 3:
 	jmp	_C_LABEL(rw_vector_enter)
+#ifdef LOCKDOC
+END(_rw_enter)
+#else
 END(rw_enter)
-
+#endif
 /*
  * void rw_exit(krwlock_t *rwl);
  *
  * Release one hold on a RW lock.
  */
+#ifdef LOCKDOC
+ENTRY(_rw_exit)
+#else
 ENTRY(rw_exit)
+#endif
 	movl	4(%esp), %edx
 	movl	(%edx), %eax
 	testb	$RW_WRITE_LOCKED, %al
@@ -193,14 +204,21 @@ ENTRY(rw_exit)
 	 * Slow path.
 	 */
 3:	jmp	_C_LABEL(rw_vector_exit)
+#ifdef LOCKDOC
+END(_rw_exit)
+#else
 END(rw_exit)
-
+#endif
 /*
  * int rw_tryenter(krwlock_t *rwl, krw_t op);
  *
  * Try to acquire one hold on a RW lock.
  */
+#ifdef LOCKDOC
+ENTRY(_rw_tryenter)
+#else
 ENTRY(rw_tryenter)
+#endif
 	movl	4(%esp), %edx
 	cmpl	$RW_READER, 8(%esp)
 	jne	2f
@@ -237,8 +255,11 @@ ENTRY(rw_tryenter)
 4:
 	xorl	%eax, %eax
 	jmp	3b
+#ifdef LOCKDOC
+END(_rw_tryenter)
+#else
 END(rw_tryenter)
-
+#endif
 #ifndef XENPV
 
 /*
@@ -341,7 +362,9 @@ END(i686_mutex_spin_exit)
 
 #else	/* !XENPV */
 
-/* For now; strong alias not working for some reason. */
+/* For now; strong alias not working for some reason.
+ * Not relevant for LOCKDOC as it's only used in Xen
+ */
 ENTRY(mutex_spin_enter)
 	jmp	_C_LABEL(mutex_vector_enter)
 

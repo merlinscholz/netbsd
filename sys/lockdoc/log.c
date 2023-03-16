@@ -7,6 +7,51 @@
 
 struct log_action la_buffer;
 
+inline void __mutex_enter(kmutex_t * lock, const char* file, int line) {
+	lockdoc_log_lock(P_WRITE, lock, file, line, LOCK_NONE);
+	_mutex_enter(lock);
+}
+
+inline void __mutex_exit(kmutex_t * lock, const char* file, int line) {
+	lockdoc_log_lock(V_WRITE, lock, file, line, LOCK_NONE);
+	_mutex_exit(lock);
+}
+
+inline void __mutex_spin_enter(kmutex_t * lock, const char* file, int line) {
+	lockdoc_log_lock(P_WRITE, lock, file, line, LOCK_NONE);
+	_mutex_spin_enter(lock);
+}
+
+inline void __mutex_spin_exit(kmutex_t * lock, const char* file, int line) {
+	lockdoc_log_lock(V_WRITE, lock, file, line, LOCK_NONE);
+	_mutex_spin_exit(lock);
+}
+
+inline void __rw_enter(krwlock_t * lock, const krw_t type, const char* file, int line) {
+	if(type == RW_READER)
+		lockdoc_log_lock(P_READ, lock, file, line, LOCK_NONE);
+	else
+		lockdoc_log_lock(P_WRITE, lock, file, line, LOCK_NONE);
+	_rw_enter(lock, type);
+}
+
+inline int __rw_tryenter(krwlock_t * lock, const krw_t type, const char* file, int line) {
+	// TODO Check against other implementations
+	return _rw_tryenter(lock, type);
+}
+
+inline void __rw_exit(krwlock_t * lock, const char* file, int line) {
+	if((lock->rw_owner & 0x02UL) > 0)
+		lockdoc_log_lock(V_WRITE, lock, file, line, LOCK_NONE);
+	else
+		lockdoc_log_lock(V_READ, lock, file, line, LOCK_NONE);
+	_rw_exit(lock);
+}
+
+/*
+ * Yet to be implemented: Check https://man.netbsd.org/locking.9
+ */
+
 int32_t lockdoc_get_ctx(void) {
 	if (curlwp == NULL) {
 		return 0;
