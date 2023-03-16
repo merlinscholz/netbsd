@@ -6,8 +6,9 @@
 
 #include <sys/types.h>
 #include <sys/systm.h>
-#include <sys/lockdebug.h>
 #include <sys/lockdoc_event.h>
+#include <sys/mutex.h>
+#include <sys/rwlock.h>
 
 #define DELIMITER	"#"
 #define DELIMITER_CHAR	'#'
@@ -24,6 +25,17 @@ void	_mutex_enter(kmutex_t *);
 void	_mutex_exit(kmutex_t *);
 void	_mutex_spin_enter(kmutex_t *);
 void	_mutex_spin_exit(kmutex_t *);
+void	_rw_enter(krwlock_t *, const krw_t);
+int	_rw_tryenter(krwlock_t *, const krw_t);
+void	_rw_exit(krwlock_t *);
+
+void	__mutex_enter(kmutex_t *, const char*, int);
+void	__mutex_exit(kmutex_t *, const char*, int);
+void	__mutex_spin_enter(kmutex_t *, const char*, int);
+void	__mutex_spin_exit(kmutex_t *, const char*, int);
+void	__rw_enter(krwlock_t *, const krw_t, const char*, int);
+int	__rw_tryenter(krwlock_t *, const krw_t, const char*, int);
+void	__rw_exit(krwlock_t *, const char*, int);
 
 void trace_irqs_on(struct trapframe *frame);
 void trace_irqs_off(struct trapframe *frame);
@@ -33,25 +45,13 @@ extern struct log_action la_buffer;
 /*
  * Redefine lock function as macros instead of normal functions, so that __FILE__ etc. will work properly
  */
-#define mutex_enter(lock) do {      \
-  lockdoc_log_lock(P_WRITE, lock, __FILE__, __LINE__, LOCK_NONE);                    \
-  _mutex_enter((lock));             \
-} while(/* CONSTCOND */ 0)
-
-#define mutex_exit(lock) do {       \
-  lockdoc_log_lock(V_WRITE, lock, __FILE__, __LINE__, LOCK_NONE);                    \
-  _mutex_exit((lock));              \
-} while(/* CONSTCOND */ 0)
-
-#define mutex_spin_enter(lock) do { \
-  lockdoc_log_lock(P_WRITE, lock, __FILE__, __LINE__, LOCK_NONE);                    \
-  _mutex_spin_enter((lock));        \
-} while(/* CONSTCOND */ 0)
-
-#define mutex_spin_exit(lock) do {  \
-  lockdoc_log_lock(V_WRITE, lock, __FILE__, __LINE__, LOCK_NONE);                    \
-  _mutex_spin_exit((lock));         \
-} while(/* CONSTCOND */ 0)
+#define mutex_enter(lock) __mutex_enter(lock, __FILE__, __LINE__)
+#define mutex_exit(lock) __mutex_exit(lock, __FILE__, __LINE__)
+#define mutex_spin_enter(lock) __mutex_spin_enter(lock, __FILE__, __LINE__)
+#define mutex_spin_exit(lock) __mutex_spin_exit(lock, __FILE__, __LINE__)
+#define rw_enter(lock, type) __rw_enter(lock, type, __FILE__, __LINE__)
+#define rw_tryenter(lock, type) __rw_tryenter(lock, type, __FILE__, __LINE__)
+#define rw_exit(lock) __rw_exit(lock, __FILE__, __LINE__)
 
 /* Basic port I/O */
 static inline void outb_(u_int8_t v, u_int16_t port)
@@ -61,7 +61,7 @@ static inline void outb_(u_int8_t v, u_int16_t port)
 
 static inline void lockdoc_log_memory(int alloc, const char *datatype, const void *ptr, size_t size) {
     u_long flags;
-	
+
 	flags = lockdoc_x86_disable_intr();
 
 	memset(&la_buffer,0,sizeof(la_buffer));

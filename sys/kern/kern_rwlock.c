@@ -105,9 +105,15 @@ do { \
 #endif
 
 #ifndef __HAVE_RW_STUBS
+#ifdef LOCKDOC
+__strong_alias(_rw_enter,rw_vector_enter);
+__strong_alias(_rw_exit,rw_vector_exit);
+__strong_alias(_rw_tryenter,rw_vector_tryenter);
+#else
 __strong_alias(rw_enter,rw_vector_enter);
 __strong_alias(rw_exit,rw_vector_exit);
 __strong_alias(rw_tryenter,rw_vector_tryenter);
+#endif
 #endif
 
 static void	rw_abort(const char *, size_t, krwlock_t *, const char *);
