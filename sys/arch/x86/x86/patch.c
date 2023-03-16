@@ -261,13 +261,13 @@ x86_patch(bool early)
 		    spllower, spllower_end,
 		    cx8_spllower_patch
 		);
-#if defined(i386) && !defined(LOCKDEBUG)
+#if defined(i386) && !defined(LOCKDEBUG) && !defined(LOCKDOC)
 		patchfunc(
 		    i686_mutex_spin_exit, i686_mutex_spin_exit_end,
 		    mutex_spin_exit, mutex_spin_exit_end,
 		    i686_mutex_spin_exit_patch
 		);
-#endif	/* i386 && !LOCKDEBUG */
+#endif	/* i386 && !LOCKDEBUG && !LOCKDOC */
 	}
 #endif /* !SPLDEBUG */
 

@@ -260,13 +260,23 @@ MUTEX_RELEASE(kmutex_t *mtx)
 #endif
 
 #ifndef __HAVE_MUTEX_STUBS
+#ifdef LOCKDOC
+__strong_alias(_mutex_enter,mutex_vector_enter);
+__strong_alias(_mutex_exit,mutex_vector_exit);
+#else
 __strong_alias(mutex_enter,mutex_vector_enter);
 __strong_alias(mutex_exit,mutex_vector_exit);
 #endif
+#endif
 
 #ifndef __HAVE_SPIN_MUTEX_STUBS
+#ifdef LOCKDOC
+__strong_alias(_mutex_spin_enter,mutex_vector_enter);
+__strong_alias(_mutex_spin_exit,mutex_vector_exit);
+#else
 __strong_alias(mutex_spin_enter,mutex_vector_enter);
 __strong_alias(mutex_spin_exit,mutex_vector_exit);
+#endif
 #endif
 
 static void	mutex_abort(const char *, size_t, const kmutex_t *,

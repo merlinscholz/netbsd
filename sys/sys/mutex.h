@@ -184,6 +184,15 @@ void	mutex_wakeup(kmutex_t *);
 #include <machine/mutex.h>
 
 /*
+ * This import is needed so that the mutex_ are being defined
+ * without having to add the lockdoc.h import to every single+
+ * file where mutex_functions are being called.
+ */
+#ifdef LOCKDOC
+#include <sys/lockdoc.h>
+#endif
+
+/*
  * Return true if no spin mutexes are held by the current CPU.
  */
 #ifndef MUTEX_NO_SPIN_ACTIVE_P
@@ -195,11 +204,13 @@ void	mutex_wakeup(kmutex_t *);
 void	mutex_init(kmutex_t *, kmutex_type_t, int);
 void	mutex_destroy(kmutex_t *);
 
+#ifndef LOCKDOC
 void	mutex_enter(kmutex_t *);
 void	mutex_exit(kmutex_t *);
 
 void	mutex_spin_enter(kmutex_t *);
 void	mutex_spin_exit(kmutex_t *);
+#endif
 
 int	mutex_tryenter(kmutex_t *);
 

@@ -87,11 +87,22 @@ int	apmdebug = 0;
  * assert an exclusive lock any time thread context enters the
  * APM module.  This is both the APM thread itself, as well as
  * user context.
+ * 
+ * LOCKDOC Update: I don't know why this is implemented as a
+ * macro with (void) cast here, but it breaks when LOCKDOC replaces
+ * mutex_enter with a macro. So we circumvent that.
  */
+#ifdef LOCKDOC
+#define	APM_LOCK(apmsc)						\
+	mutex_enter(&(apmsc)->sc_lock)
+#define	APM_UNLOCK(apmsc)						\
+	mutex_exit(&(apmsc)->sc_lock)
+#else
 #define	APM_LOCK(apmsc)						\
 	(void) mutex_enter(&(apmsc)->sc_lock)
 #define	APM_UNLOCK(apmsc)						\
 	(void) mutex_exit(&(apmsc)->sc_lock)
+#endif
 
 static void	apm_event_handle(struct apm_softc *, u_int, u_int);
 static void	apm_periodic_check(struct apm_softc *);

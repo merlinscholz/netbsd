@@ -382,7 +382,7 @@ static void control_thread_work(void *data) {
 		kthread_exit(1);
 	}
 	ring_buffer->size = RING_BUFFER_SIZE_REAL;
-	log_memory(1, "lockdoc_ring_buffer", ring_buffer, sizeof(*ring_buffer));
+	lockdoc_log_memory(1, "lockdoc_ring_buffer", ring_buffer, sizeof(*ring_buffer));
 
 	START_AND_WAIT_THREAD(producer_thread_work);
 	START_AND_WAIT_THREAD(consumer_thread_work);
@@ -391,7 +391,7 @@ static void control_thread_work(void *data) {
 	START_AND_WAIT_THREAD(dirty_alllocks_thread_work);
 	START_AND_WAIT_THREAD(dirty_order_thread_work);
 
-	log_memory(0, "lockdoc_ring_buffer", ring_buffer, sizeof(*ring_buffer));
+	lockdoc_log_memory(0, "lockdoc_ring_buffer", ring_buffer, sizeof(*ring_buffer));
 	free(ring_buffer, M_LOCKDOC);
 
 	mutex_destroy(&rb_lock);

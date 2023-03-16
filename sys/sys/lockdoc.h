@@ -2,6 +2,7 @@
 #define __LOCKDOC_H__
 
 #include <arch/x86/include/cpufunc.h>
+#include <arch/i386/include/frame.h>
 
 #include <sys/types.h>
 #include <sys/systm.h>
@@ -19,22 +20,38 @@
 int32_t lockdoc_get_ctx(void);
 void lockdoc_x86_restore_intr(u_long eflags);
 
+void	_mutex_enter(kmutex_t *);
+void	_mutex_exit(kmutex_t *);
+void	_mutex_spin_enter(kmutex_t *);
+void	_mutex_spin_exit(kmutex_t *);
+
 void trace_irqs_on(struct trapframe *frame);
 void trace_irqs_off(struct trapframe *frame);
 
 extern struct log_action la_buffer;
 
+/*
+ * Redefine lock function as macros instead of normal functions, so that __FILE__ etc. will work properly
+ */
+#define mutex_enter(lock) do {      \
+  lockdoc_log_lock(P_WRITE, lock, __FILE__, __LINE__, LOCK_NONE);                    \
+  _mutex_enter((lock));             \
+} while(/* CONSTCOND */ 0)
 
-// For DEFINEs in lockdebug.h
-// Implemented in lockdoc/log.c
-void	lockdoc_alloc(const char *, const char *, size_t, volatile void *, lockops_t *, uintptr_t);
-void	lockdoc_free(const char *, const char *, size_t, volatile void *);
-void	lockdoc_wantlock(const char *, const char *, size_t, const volatile void *, uintptr_t, int);
-void	lockdoc_locked(const char *, const char *, size_t, volatile void *, void *, uintptr_t, int);
-void	lockdoc_unlocked(const char *, const char *, size_t, volatile void *, uintptr_t, int);
-void	lockdoc_barrier(const char *, const char *, size_t, volatile void *, int);
-void	lockdoc_mem_check(const char *, const char *, size_t, void *, size_t);
-void	lockdoc_wakeup(const char *, const char *, size_t, volatile void *, uintptr_t);
+#define mutex_exit(lock) do {       \
+  lockdoc_log_lock(V_WRITE, lock, __FILE__, __LINE__, LOCK_NONE);                    \
+  _mutex_exit((lock));              \
+} while(/* CONSTCOND */ 0)
+
+#define mutex_spin_enter(lock) do { \
+  lockdoc_log_lock(P_WRITE, lock, __FILE__, __LINE__, LOCK_NONE);                    \
+  _mutex_spin_enter((lock));        \
+} while(/* CONSTCOND */ 0)
+
+#define mutex_spin_exit(lock) do {  \
+  lockdoc_log_lock(V_WRITE, lock, __FILE__, __LINE__, LOCK_NONE);                    \
+  _mutex_spin_exit((lock));         \
+} while(/* CONSTCOND */ 0)
 
 /* Basic port I/O */
 static inline void outb_(u_int8_t v, u_int16_t port)
@@ -42,7 +59,7 @@ static inline void outb_(u_int8_t v, u_int16_t port)
 	__asm __volatile("outb %0,%1" : : "a" (v), "dN" (port));
 }
 
-static inline void log_memory(int alloc, const char *datatype, const void *ptr, size_t size) {
+static inline void lockdoc_log_memory(int alloc, const char *datatype, const void *ptr, size_t size) {
     u_long flags;
 	
 	flags = lockdoc_x86_disable_intr();
@@ -69,7 +86,7 @@ static inline void log_memory(int alloc, const char *datatype, const void *ptr, 
 	lockdoc_x86_restore_intr(flags);
 }
 
-static inline void log_lock(int lock_op, const volatile void* ptr, const char *file, int line, int irq_sync) {
+static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const char *file, int line, int irq_sync) {
     u_long eflags;
     eflags = x86_read_psl();
     lockdoc_x86_disable_intr();
