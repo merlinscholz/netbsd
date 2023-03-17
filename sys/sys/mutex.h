@@ -185,7 +185,7 @@ void	mutex_wakeup(kmutex_t *);
 
 /*
  * This import is needed so that the mutex_ are being defined
- * without having to add the lockdoc.h import to every single+
+ * without having to add the lockdoc.h import to every single
  * file where mutex_functions are being called.
  */
 #ifdef LOCKDOC
@@ -210,9 +210,18 @@ void	mutex_exit(kmutex_t *);
 
 void	mutex_spin_enter(kmutex_t *);
 void	mutex_spin_exit(kmutex_t *);
-#endif
 
 int	mutex_tryenter(kmutex_t *);
+#else
+void	_mutex_enter(kmutex_t *);
+void	_mutex_exit(kmutex_t *);
+
+void	_mutex_spin_enter(kmutex_t *);
+void	_mutex_spin_exit(kmutex_t *);
+
+int	_mutex_tryenter(kmutex_t *);
+#endif
+
 
 int	mutex_owned(const kmutex_t *);
 int	mutex_ownable(const kmutex_t *);

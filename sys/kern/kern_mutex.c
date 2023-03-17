@@ -889,8 +889,13 @@ mutex_ownable(const kmutex_t *mtx)
  *
  *	Try to acquire the mutex; return non-zero if we did.
  */
+#ifdef LOCKDOC
+int
+_mutex_tryenter(kmutex_t *mtx)
+#else
 int
 mutex_tryenter(kmutex_t *mtx)
+#endif
 {
 	uintptr_t curthread;
 
