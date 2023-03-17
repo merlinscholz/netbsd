@@ -588,8 +588,13 @@ rw_vector_tryenter(krwlock_t *rw, const krw_t op)
  *
  *	Downgrade a write lock to a read lock.
  */
+#ifdef LOCKDOC
+void
+_rw_downgrade(krwlock_t *rw)
+#else
 void
 rw_downgrade(krwlock_t *rw)
+#endif
 {
 	uintptr_t owner, curthread, newown, next;
 	turnstile_t *ts;
@@ -689,8 +694,13 @@ rw_downgrade(krwlock_t *rw)
  *	Try to upgrade a read lock to a write lock.  We must be the only
  *	reader.
  */
+#ifdef LOCKDOC
+int
+_rw_tryupgrade(krwlock_t *rw)
+#else
 int
 rw_tryupgrade(krwlock_t *rw)
+#endif
 {
 	uintptr_t owner, curthread, newown, next;
 	struct lwp *l;

@@ -21,21 +21,16 @@
 int32_t lockdoc_get_ctx(void);
 void lockdoc_x86_restore_intr(u_long eflags);
 
-void	_mutex_enter(kmutex_t *);
-void	_mutex_exit(kmutex_t *);
-void	_mutex_spin_enter(kmutex_t *);
-void	_mutex_spin_exit(kmutex_t *);
-void	_rw_enter(krwlock_t *, const krw_t);
-int	_rw_tryenter(krwlock_t *, const krw_t);
-void	_rw_exit(krwlock_t *);
-
-void	__mutex_enter(kmutex_t *, const char*, int);
-void	__mutex_exit(kmutex_t *, const char*, int);
-void	__mutex_spin_enter(kmutex_t *, const char*, int);
-void	__mutex_spin_exit(kmutex_t *, const char*, int);
-void	__rw_enter(krwlock_t *, const krw_t, const char*, int);
-int	__rw_tryenter(krwlock_t *, const krw_t, const char*, int);
-void	__rw_exit(krwlock_t *, const char*, int);
+void	__mutex_enter(kmutex_t *, const char*, int, const char*);
+void	__mutex_exit(kmutex_t *, const char*, int, const char*);
+void	__mutex_spin_enter(kmutex_t *, const char*, int, const char*);
+void	__mutex_spin_exit(kmutex_t *, const char*, int, const char*);
+int    	__mutex_tryenter(kmutex_t *, const char*, int, const char*);
+int     __rw_tryupgrade(krwlock_t *, const char*, int, const char*);
+void    __rw_downgrade(krwlock_t *, const char*, int, const char*);
+void	__rw_enter(krwlock_t *, const krw_t, const char*, int, const char*);
+int	    __rw_tryenter(krwlock_t *, const krw_t, const char*, int, const char*);
+void	__rw_exit(krwlock_t *, const char*, int, const char*);
 
 void trace_irqs_on(struct trapframe *frame);
 void trace_irqs_off(struct trapframe *frame);
@@ -45,13 +40,17 @@ extern struct log_action la_buffer;
 /*
  * Redefine lock function as macros instead of normal functions, so that __FILE__ etc. will work properly
  */
-#define mutex_enter(lock) __mutex_enter(lock, __FILE__, __LINE__)
-#define mutex_exit(lock) __mutex_exit(lock, __FILE__, __LINE__)
-#define mutex_spin_enter(lock) __mutex_spin_enter(lock, __FILE__, __LINE__)
-#define mutex_spin_exit(lock) __mutex_spin_exit(lock, __FILE__, __LINE__)
-#define rw_enter(lock, type) __rw_enter(lock, type, __FILE__, __LINE__)
-#define rw_tryenter(lock, type) __rw_tryenter(lock, type, __FILE__, __LINE__)
-#define rw_exit(lock) __rw_exit(lock, __FILE__, __LINE__)
+#define mutex_enter(lock) __mutex_enter(lock, __FILE__, __LINE__, __func__)
+#define mutex_exit(lock) __mutex_exit(lock, __FILE__, __LINE__, __func__)
+#define mutex_spin_enter(lock) __mutex_spin_enter(lock, __FILE__, __LINE__, __func__)
+#define mutex_spin_exit(lock) __mutex_spin_exit(lock, __FILE__, __LINE__, __func__)
+#define mutex_tryenter(lock) __mutex_tryenter(lock, __FILE__, __LINE__, __func__)
+
+#define rw_tryupgrade(lock) __rw_tryupgrade(lock, __FILE__, __LINE__, __func__)
+#define rw_downgrade(lock) __rw_downgrade(lock, __FILE__, __LINE__, __func__)
+#define rw_enter(lock, type) __rw_enter(lock, type, __FILE__, __LINE__, __func__)
+#define rw_tryenter(lock, type) __rw_tryenter(lock, type, __FILE__, __LINE__, __func__)
+#define rw_exit(lock) __rw_exit(lock, __FILE__, __LINE__, __func__)
 
 /* Basic port I/O */
 static inline void outb_(u_int8_t v, u_int16_t port)
@@ -86,7 +85,16 @@ static inline void lockdoc_log_memory(int alloc, const char *datatype, const voi
 	lockdoc_x86_restore_intr(flags);
 }
 
-static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const char *file, int line, int irq_sync) {
+/*
+ * TODO: Check for different lock types. We can *not*:
+ * - Copy the FreeBSD approach with the embedded struct (since it just doesn't exist)
+ * - Copy the Linux approach with __same_type (doesn't exist either)
+ * 
+ * Possible solutions:
+ * - Pass an enum that is statically set in the macro, different in each function (similar to Linux)
+ * 
+ */
+static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const char *file, int line, const char* func, int irq_sync) {
     u_long eflags;
     eflags = x86_read_psl();
     lockdoc_x86_disable_intr();
@@ -102,12 +110,14 @@ static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const
     // context
     la_buffer.ctx = lockdoc_get_ctx();
 
+    // TODO Check for IRQ
+
     // pointer
-    la_buffer.ptr = (unsigned long)ptr;
+    la_buffer.ptr = (uint32_t)ptr;
 
     // size only relevant for memory access
 
-    // TODO type
+    // TODO type (See fuction-level TODO)
     strncpy(la_buffer.type, "dummy", LOG_CHAR_BUFFER_LEN);
 	la_buffer.type[LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
@@ -116,14 +126,14 @@ static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const
 	la_buffer.lock_member[LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
     // file
-    strncpy(la_buffer.file,file,LOG_CHAR_BUFFER_LEN);
+    strncpy(la_buffer.file, file, LOG_CHAR_BUFFER_LEN);
 	la_buffer.file[LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
     // line
     la_buffer.line = line;
 
-    // TODO function
-	strncpy(la_buffer.function,"dummy",LOG_CHAR_BUFFER_LEN);
+    // function
+	strncpy(la_buffer.function, func, LOG_CHAR_BUFFER_LEN);
 	la_buffer.function[LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
     // TODO preempt_count
