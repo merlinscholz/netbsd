@@ -94,7 +94,7 @@ static inline void lockdoc_log_memory(int alloc, const char *datatype, const voi
  * - Pass an enum that is statically set in the macro, different in each function (similar to Linux)
  * 
  */
-static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const char *file, int line, const char* func, int irq_sync) {
+static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const char *file, int line, const char* func, const char* lock_type, int irq_sync) {
     u_long eflags;
     eflags = x86_read_psl();
     lockdoc_x86_disable_intr();
@@ -117,8 +117,8 @@ static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const
 
     // size only relevant for memory access
 
-    // TODO type (See fuction-level TODO)
-    strncpy(la_buffer.type, "dummy", LOG_CHAR_BUFFER_LEN);
+    // type
+    strncpy(la_buffer.type, lock_type, LOG_CHAR_BUFFER_LEN);
 	la_buffer.type[LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
     // TODO lock_member
