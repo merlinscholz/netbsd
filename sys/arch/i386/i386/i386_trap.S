@@ -408,7 +408,13 @@ calltrap:
 	addl	$1,CPUVAR(NTRAP)	/* statistical info */
 	adcl	$0,CPUVAR(NTRAP)+4
 	pushl	%esp
+#ifdef LOCKDOC
+	call	_C_LABEL(trace_irqs_off)
+#endif
 	call	_C_LABEL(trap)
+#ifdef LOCKDOC
+	call	_C_LABEL(trace_irqs_on)
+#endif
 	addl	$4,%esp
 _C_LABEL(trapreturn):	.globl	trapreturn
 	testb	$CHK_UPL,TF_CS(%esp)

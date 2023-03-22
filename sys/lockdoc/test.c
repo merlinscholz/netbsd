@@ -390,6 +390,8 @@ static void control_thread_work(void *data) {
 	START_AND_WAIT_THREAD(dirty_fewlocks_thread_work);
 	START_AND_WAIT_THREAD(dirty_alllocks_thread_work);
 	START_AND_WAIT_THREAD(dirty_order_thread_work);
+	
+
 
 	lockdoc_log_memory(0, "lockdoc_ring_buffer", ring_buffer, sizeof(*ring_buffer));
 	free(ring_buffer, M_LOCKDOC);
