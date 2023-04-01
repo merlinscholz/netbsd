@@ -123,6 +123,14 @@ int	rw_read_held(krwlock_t *);
 int	rw_write_held(krwlock_t *);
 int	rw_lock_held(krwlock_t *);
 
+#ifdef LOCKDOC
+/*
+ * Helper function to get a lock type (backported from NetBSD 10.0-STABLE)
+ * the #ifdef is here just in case.
+ */
+krw_t   rw_lock_op(krwlock_t *);
+#endif
+
 #ifndef LOCKDOC
 void	rw_enter(krwlock_t *, const krw_t);
 void	rw_exit(krwlock_t *);
