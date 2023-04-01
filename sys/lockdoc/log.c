@@ -16,8 +16,8 @@ inline void __mutex_enter(kmutex_t * lock, const char* file, int line, const cha
 }
 
 inline void __mutex_exit(kmutex_t * lock, const char* file, int line, const char* func) {
-	_mutex_exit(lock);
 	lockdoc_log_lock(V_WRITE, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+	_mutex_exit(lock);
 }
 
 inline void __mutex_spin_enter(kmutex_t * lock, const char* file, int line, const char* func) {
@@ -26,8 +26,8 @@ inline void __mutex_spin_enter(kmutex_t * lock, const char* file, int line, cons
 }
 
 inline void __mutex_spin_exit(kmutex_t * lock, const char* file, int line, const char* func) {
-	_mutex_spin_exit(lock);
 	lockdoc_log_lock(V_WRITE, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+	_mutex_spin_exit(lock);
 }
 
 inline int __mutex_tryenter(kmutex_t * lock, const char* file, int line, const char* func) {
