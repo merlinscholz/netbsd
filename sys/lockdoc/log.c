@@ -9,6 +9,7 @@ struct log_action la_buffer;
 
 #define LOCK_TYPE "kmutex_t"
 
+// Mutexes are always considered write locks
 inline void __mutex_enter(kmutex_t * lock, const char* file, int line, const char* func) {
 	_mutex_enter(lock);
 	lockdoc_log_lock(P_WRITE, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
@@ -75,11 +76,15 @@ inline int __rw_tryenter(krwlock_t * lock, const krw_t type, const char* file, i
 }
 
 inline void __rw_exit(krwlock_t * lock, const char* file, int line, const char* func) {
-	_rw_exit(lock);
-	if((lock->rw_owner & 0x04UL) != 0)
+	/*
+	 * See sys/sys/rwlock.h
+	 * We cannot include this directly due to circular dependencies.
+	 */
+	if(rw_lock_op(lock) == RW_WRITER)
 		lockdoc_log_lock(V_WRITE, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
 	else
 		lockdoc_log_lock(V_READ, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+	_rw_exit(lock);
 }
 #undef LOCK_TYPE
 
@@ -158,7 +163,7 @@ void trace_irqs_on(struct trapframe *frame) {
 	u_long cur_eflags;
 	cur_eflags = x86_read_flags();
 	if ((frame->tf_eflags & (1 << 9)) && !(cur_eflags & (1 << 9))) {
-		lockdoc_log_lock(V_WRITE, (struct lock_object*)PSEUDOLOCK_ADDR_HARDIRQ, __FILE__, __LINE__, "dummy", "dummy", LOCK_NONE);
+		lockdoc_log_lock(V_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, __FILE__, __LINE__, "dummy", "dummy", LOCK_NONE);
 	}
 }
 
@@ -166,7 +171,7 @@ void trace_irqs_off(struct trapframe *frame) {
 	u_long cur_eflags;
 	cur_eflags = x86_read_flags();
 	if ((frame->tf_eflags & (1 << 9)) && !(cur_eflags & (1 << 9))) {
-		lockdoc_log_lock(P_WRITE, (struct lock_object*)PSEUDOLOCK_ADDR_HARDIRQ, __FILE__, __LINE__, "dummy", "dummy", frame->tf_trapno);
+		lockdoc_log_lock(P_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, __FILE__, __LINE__, "dummy", "dummy", frame->tf_trapno);
 	}
 }
 
@@ -175,7 +180,7 @@ void __x86_disable_intr(const char *file, int line, const char *func){
     
     eflags = x86_read_flags();
     if (eflags & (1 << 9)){  // Check if interrupts were enabled in the first place
-		lockdoc_log_lock(P_WRITE, (void*)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", LOCK_NONE); 
+		lockdoc_log_lock(P_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", LOCK_NONE); 
     }
     lockdoc_x86_disable_intr();
 }
@@ -194,7 +199,7 @@ void __x86_enable_intr(const char *file, int line, const char *func){
     
     eflags = x86_read_flags();
     if (!(eflags & (1 << 9))){  // Check if interrupts were disabled in the first place
-		lockdoc_log_lock(V_WRITE, (void*)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", LOCK_NONE); 
+		lockdoc_log_lock(V_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", LOCK_NONE); 
     }
     lockdoc_x86_enable_intr();
 }

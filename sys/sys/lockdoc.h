@@ -52,6 +52,11 @@ extern struct log_action la_buffer;
 #define rw_tryenter(lock, type) __rw_tryenter(lock, type, __FILE__, __LINE__, __func__)
 #define rw_exit(lock) __rw_exit(lock, __FILE__, __LINE__, __func__)
 
+/*
+ * Helper function to get a lock type (backported from NetBSD 10.0-STABLE)
+ */
+krw_t rw_lock_op(krwlock_t *rw);
+
 /* Basic port I/O */
 static inline void outb_(u_int8_t v, u_int16_t port)
 {
@@ -85,15 +90,6 @@ static inline void lockdoc_log_memory(int alloc, const char *datatype, const voi
 	lockdoc_x86_restore_intr(flags);
 }
 
-/*
- * TODO: Check for different lock types. We can *not*:
- * - Copy the FreeBSD approach with the embedded struct (since it just doesn't exist)
- * - Copy the Linux approach with __same_type (doesn't exist either)
- * 
- * Possible solutions:
- * - Pass an enum that is statically set in the macro, different in each function (similar to Linux)
- * 
- */
 static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const char *file, int line, const char* func, const char* lock_type, int irq_sync) {
     u_long eflags;
     eflags = x86_read_psl();
@@ -151,8 +147,8 @@ void lockdoc_send_pid_offset(void);
 void lockdoc_send_kernel_version(void);
 
 #else
-#define log_memory(a, b, c, d)
-#define log_lock(a, b, c, d, e)
+#define lockdoc_log_memory(a, b, c, d)
+#define lockdoc_log_lock(a, b, c, d, e)
 
 #endif /* LOCKDOC */
 
