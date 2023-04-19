@@ -18,27 +18,48 @@
 
 #ifdef LOCKDOC
 
+/*
+ * The struct we will use to transfer data between VM and host
+ */
+extern struct log_action la_buffer;
+
+/*
+ * Prototypes
+ */
+
+void    lockdoc_send_current_task_addr(void);
+void    lockdoc_send_lwp_flag_offset(void);
+void    lockdoc_send_pid_offset(void);
+void    lockdoc_send_kernel_version(void);
 int32_t lockdoc_get_ctx(void);
-void lockdoc_x86_restore_intr(u_long eflags);
 
 void	__mutex_enter(kmutex_t *, const char*, int, const char*);
 void	__mutex_exit(kmutex_t *, const char*, int, const char*);
 void	__mutex_spin_enter(kmutex_t *, const char*, int, const char*);
 void	__mutex_spin_exit(kmutex_t *, const char*, int, const char*);
 int    	__mutex_tryenter(kmutex_t *, const char*, int, const char*);
+
 int     __rw_tryupgrade(krwlock_t *, const char*, int, const char*);
 void    __rw_downgrade(krwlock_t *, const char*, int, const char*);
 void	__rw_enter(krwlock_t *, const krw_t, const char*, int, const char*);
 int	    __rw_tryenter(krwlock_t *, const krw_t, const char*, int, const char*);
 void	__rw_exit(krwlock_t *, const char*, int, const char*);
 
-void trace_irqs_on(struct trapframe *frame);
-void trace_irqs_off(struct trapframe *frame);
+void    __x86_disable_intr(const char*, int, const char*);
+void    __x86_enable_intr(const char*, int, const char*);
 
-extern struct log_action la_buffer;
+void    __trace_irqs_on(struct trapframe *, const char *, int);
+void    __trace_irqs_on_check(struct trapframe *, const char *, int);
+void    __trace_irqs_off(struct trapframe *, const char *, int);
+void    __trace_irqs_off_check(struct trapframe *, const char *, int);
+
+/* Helper function to get a lock type (backported from NetBSD 10.0-STABLE) */
+krw_t   rw_lock_op(krwlock_t *rw);
+
 
 /*
- * Redefine lock function as macros instead of normal functions, so that __FILE__ etc. will work properly
+ * Redefine lock/interrupt function as macros instead of normal functions,
+ * so that __FILE__ etc. will work properly
  */
 #define mutex_enter(lock) __mutex_enter(lock, __FILE__, __LINE__, __func__)
 #define mutex_exit(lock) __mutex_exit(lock, __FILE__, __LINE__, __func__)
@@ -52,10 +73,14 @@ extern struct log_action la_buffer;
 #define rw_tryenter(lock, type) __rw_tryenter(lock, type, __FILE__, __LINE__, __func__)
 #define rw_exit(lock) __rw_exit(lock, __FILE__, __LINE__, __func__)
 
-/*
- * Helper function to get a lock type (backported from NetBSD 10.0-STABLE)
- */
-krw_t rw_lock_op(krwlock_t *rw);
+#define x86_disable_intr() __x86_disable_intr(__FILE__, __LINE__, __func__)
+#define x86_enable_intr() __x86_enable_intr(__FILE__, __LINE__, __func__)
+
+#define trace_irqs_on(frame) __trace_irqs_on(frame, __FILE__, __LINE__)
+#define trace_irqs_on_check(frame) __trace_irqs_on_check(frame, __FILE__, __LINE__)
+#define trace_irqs_off(frame) __trace_irqs_off(frame, __FILE__, __LINE__)
+#define trace_irqs_off_check(frame) __trace_irqs_off_check(frame, __FILE__, __LINE__)
+
 
 /* Basic port I/O */
 static inline void outb_(u_int8_t v, u_int16_t port)
@@ -64,9 +89,9 @@ static inline void outb_(u_int8_t v, u_int16_t port)
 }
 
 static inline void lockdoc_log_memory(int alloc, const char *datatype, const void *ptr, size_t size) {
-    u_long flags;
-
-	flags = lockdoc_x86_disable_intr();
+    u_long eflags;
+    eflags = x86_read_flags();
+    _x86_disable_intr();
 
 	memset(&la_buffer,0,sizeof(la_buffer));
 
@@ -87,13 +112,13 @@ static inline void lockdoc_log_memory(int alloc, const char *datatype, const voi
 
 	outb_(PING_CHAR,IO_PORT_LOG);
 
-	lockdoc_x86_restore_intr(flags);
+	x86_write_flags(eflags);
 }
 
 static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const char *file, int line, const char* func, const char* lock_type, int irq_sync) {
     u_long eflags;
-    eflags = x86_read_psl();
-    lockdoc_x86_disable_intr();
+    eflags = x86_read_flags();
+    _x86_disable_intr();
 
     memset(&la_buffer,0,sizeof(la_buffer));
 
@@ -140,15 +165,6 @@ static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const
 
     x86_write_flags(eflags);
 }
-
-void lockdoc_send_current_task_addr(void);
-void lockdoc_send_lwp_flag_offset(void);
-void lockdoc_send_pid_offset(void);
-void lockdoc_send_kernel_version(void);
-
-#else
-#define lockdoc_log_memory(a, b, c, d)
-#define lockdoc_log_lock(a, b, c, d, e)
 
 #endif /* LOCKDOC */
 

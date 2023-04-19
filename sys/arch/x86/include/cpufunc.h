@@ -376,32 +376,27 @@ void x86_enable_intr(void);
 #else
 
 #ifdef LOCKDOC
-
-#define x86_disable_intr()	__x86_disable_intr(__FILE__, __LINE__, __func__)
-void __x86_disable_intr(const char *file, int line, const char *func);
-u_long lockdoc_x86_disable_intr(void);
-
+static inline void
+_x86_disable_intr(void)
 #else
-
 static inline void
 x86_disable_intr(void)
+#endif
 {
 	__asm volatile ("cli" ::: "memory");
 }
-#endif /* LOCKDOC */
 
 #ifdef LOCKDOC
-#define x86_enable_intr()	__x86_enable_intr(__FILE__, __LINE__, __func__)
-void __x86_enable_intr(const char *file, int line, const char *func);
-u_long lockdoc_x86_enable_intr(void);
-
+static inline void
+_x86_enable_intr(void)
 #else
 static inline void
 x86_enable_intr(void)
+#endif
 {
 	__asm volatile ("sti" ::: "memory");
 }
-#endif /* LOCKDOC */
+
 
 #endif /* XENPV */
 
@@ -414,6 +409,19 @@ u_long	x86_read_flags(void);
 void	x86_write_flags(u_long);
 
 void	x86_reset(void);
+
+/*
+ * This import is needed so that the interrupt functions are being redefined
+ * without having to add the lockdoc.h import to every single
+ * file those functions are being called.
+ *
+ * We have to include it this late into the file to avoid circular
+ * dependencies with the calls to x86_read_flags and x86_write_flags
+ * in lockdoc.h.
+ */
+#ifdef LOCKDOC
+#include <sys/lockdoc.h>
+#endif
 
 /* -------------------------------------------------------------------------- */
 
