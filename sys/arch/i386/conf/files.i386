@@ -46,6 +46,7 @@ defparam 	opt_beep.h		BEEP_ONHALT_PITCH=1500
 defparam 	opt_beep.h		BEEP_ONHALT_PERIOD=250
 
 
+file	lockdoc/init_data.c		lockdoc
 file	lockdoc/log.c		lockdoc
 file	lockdoc/test.c		lockdoc
 

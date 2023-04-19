@@ -88,9 +88,27 @@ inline void __rw_exit(krwlock_t * lock, const char* file, int line, const char* 
 }
 #undef LOCK_TYPE
 
-/*
- * Yet to be implemented: Check https://man.netbsd.org/locking.9 (esp. IRQ, CVlock and BKL, check issue tracker)
- */
+inline void __x86_disable_intr(const char* file, int line, const char* func) {
+	u_long eflags;
+    
+    eflags = x86_read_flags();
+    if (eflags & (1 << 9)){  // Check if interrupts were enabled in the first place
+		lockdoc_log_lock(P_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", LOCK_NONE); 
+    }
+
+	_x86_disable_intr();
+}
+
+inline void __x86_enable_intr(const char* file, int line, const char* func) {
+	u_long eflags;
+    
+    eflags = x86_read_flags();
+    if (!(eflags & (1 << 9))){  // Check if interrupts were disabled in the first place
+		lockdoc_log_lock(V_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", LOCK_NONE); 
+    }
+	
+	_x86_enable_intr();
+}
 
 int32_t lockdoc_get_ctx(void) {
 	if (curlwp == NULL) {
@@ -102,118 +120,28 @@ int32_t lockdoc_get_ctx(void) {
 	}
 }
 
-void lockdoc_send_current_task_addr(void) {
-	u_long flags;
-
-	flags = lockdoc_x86_disable_intr();
-
-	memset(&la_buffer,0,sizeof(la_buffer));
-
-	la_buffer.action = LOCKDOC_CURRENT_TASK;
-	la_buffer.ptr = (uint32_t)((uint32_t)curcpu()->ci_self + offsetof(struct cpu_info, ci_curlwp));
-
-	outb_(PING_CHAR,IO_PORT_LOG);
-
-	lockdoc_x86_restore_intr(flags);
+void __trace_irqs_on(struct trapframe *frame, const char *file, int line) {
+	lockdoc_log_lock(V_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", LOCK_NONE);
 }
 
-void lockdoc_send_lwp_flag_offset(void) {
-	u_long flags;
-
-	flags = lockdoc_x86_disable_intr();
-
-	memset(&la_buffer,0,sizeof(la_buffer));
-
-	la_buffer.action = LOCKDOC_LWP_FLAG_OFFSET;
-	la_buffer.ptr = offsetof(struct lwp, l_pflag);
-	outb_(PING_CHAR,IO_PORT_LOG);
-
-	lockdoc_x86_restore_intr(flags);
-}
-
-void lockdoc_send_pid_offset(void) {
-	u_long flags;
-
-	flags = lockdoc_x86_disable_intr();
-
-	memset(&la_buffer,0,sizeof(la_buffer));
-
-	la_buffer.action = LOCKDOC_PID_OFFSET;
-	la_buffer.ptr = offsetof(struct lwp, l_lid);
-	outb_(PING_CHAR,IO_PORT_LOG);
-
-	lockdoc_x86_restore_intr(flags);
-}
-
-void lockdoc_send_kernel_version(void) {
-	u_long flags;
-
-	flags = lockdoc_x86_disable_intr();
-
-	memset(&la_buffer,0,sizeof(la_buffer));
-
-	snprintf((char*)&la_buffer.type, LOG_CHAR_BUFFER_LEN, "%s", "notimplemented"); // TODO Implement
-	la_buffer.action = LOCKDOC_KERNEL_VERSION;
-	outb_(PING_CHAR,IO_PORT_LOG);
-
-	lockdoc_x86_restore_intr(flags);
-}
-
-void trace_irqs_on(struct trapframe *frame) {
+void __trace_irqs_on_check(struct trapframe *frame, const char *file, int line) {
 	u_long cur_eflags;
 	cur_eflags = x86_read_flags();
 	if ((frame->tf_eflags & (1 << 9)) && !(cur_eflags & (1 << 9))) {
-		lockdoc_log_lock(V_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, __FILE__, __LINE__, "dummy", "dummy", LOCK_NONE);
+		lockdoc_log_lock(V_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", LOCK_NONE);
 	}
 }
 
-void trace_irqs_off(struct trapframe *frame) {
+void __trace_irqs_off(struct trapframe *frame, const char *file, int line) {
+	lockdoc_log_lock(P_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", frame->tf_trapno);
+}
+
+void __trace_irqs_off_check(struct trapframe *frame, const char *file, int line) {
 	u_long cur_eflags;
 	cur_eflags = x86_read_flags();
 	if ((frame->tf_eflags & (1 << 9)) && !(cur_eflags & (1 << 9))) {
-		lockdoc_log_lock(P_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, __FILE__, __LINE__, "dummy", "dummy", frame->tf_trapno);
+		lockdoc_log_lock(P_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", frame->tf_trapno);
 	}
-}
-
-void __x86_disable_intr(const char *file, int line, const char *func){
-    u_long eflags;
-    
-    eflags = x86_read_flags();
-    if (eflags & (1 << 9)){  // Check if interrupts were enabled in the first place
-		lockdoc_log_lock(P_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", LOCK_NONE); 
-    }
-    lockdoc_x86_disable_intr();
-}
-
-u_long lockdoc_x86_disable_intr(void){
-    u_long eflags;
-
-    eflags = x86_read_flags();
-	__asm volatile ("cli" ::: "memory");
-    return eflags;
-
-}
-
-void __x86_enable_intr(const char *file, int line, const char *func){
-    u_long eflags;
-    
-    eflags = x86_read_flags();
-    if (!(eflags & (1 << 9))){  // Check if interrupts were disabled in the first place
-		lockdoc_log_lock(V_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", LOCK_NONE); 
-    }
-    lockdoc_x86_enable_intr();
-}
-
-u_long lockdoc_x86_enable_intr(void){
-    u_long eflags;
-
-    eflags = x86_read_flags();
-	__asm volatile ("sti" ::: "memory");
-    return eflags;
-}
-
-void lockdoc_x86_restore_intr(u_long eflags){
-    x86_write_flags(eflags);
 }
 
 #endif /* LOCKDOC */
