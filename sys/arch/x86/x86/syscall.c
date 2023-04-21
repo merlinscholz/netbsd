@@ -49,6 +49,10 @@ __KERNEL_RCSID(0, "$NetBSD: syscall.c,v 1.21 2022/03/17 22:22:49 riastradh Exp $
 
 #include "opt_dtrace.h"
 
+#ifdef LOCKDOC
+#include <sys/lockdoc.h>
+#endif
+
 #ifndef __x86_64__
 int		x86_copyargs(void *, void *, size_t);
 #endif
@@ -111,6 +115,10 @@ syscall(struct trapframe *frame)
 	code = X86_TF_RAX(frame) & (SYS_NSYSENT - 1);
 	callp = p->p_emul->e_sysent + code;
 
+#ifdef LOCKDOC
+	trace_irqs_off_check(frame->tf_eflags);
+#endif
+
 	SYSCALL_COUNT(syscall_counts, code);
 	SYSCALL_TIME_SYS_ENTRY(l, syscall_times, code);
 
@@ -163,6 +171,11 @@ syscall(struct trapframe *frame)
 	}
 
 	SYSCALL_TIME_SYS_EXIT(l);
+
+#ifdef LOCKDOC
+	trace_irqs_on_check(frame->tf_eflags);
+#endif
+
 	userret(l);
 }
 
