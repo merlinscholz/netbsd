@@ -48,10 +48,12 @@ void	__rw_exit(krwlock_t *, const char*, int, const char*);
 void    __x86_disable_intr(const char*, int, const char*);
 void    __x86_enable_intr(const char*, int, const char*);
 
-void    __trace_irqs_on(struct trapframe *, const char *, int);
-void    __trace_irqs_on_check(struct trapframe *, const char *, int);
-void    __trace_irqs_off(struct trapframe *, const char *, int);
-void    __trace_irqs_off_check(struct trapframe *, const char *, int);
+void    __trace_irqs_on(const char *, int);
+void    __trace_irqs_on_check(int, const char *, int);
+void    __trace_irqs_on_asm(void);
+void    __trace_irqs_off(const char *, int);
+void    __trace_irqs_off_check(int, const char *, int);
+void    __trace_irqs_off_asm(void);
 
 /* Helper function to get a lock type (backported from NetBSD 10.0-STABLE) */
 krw_t   rw_lock_op(krwlock_t *rw);
@@ -76,14 +78,13 @@ krw_t   rw_lock_op(krwlock_t *rw);
 #define x86_disable_intr() __x86_disable_intr(__FILE__, __LINE__, __func__)
 #define x86_enable_intr() __x86_enable_intr(__FILE__, __LINE__, __func__)
 
-#define trace_irqs_on(frame) __trace_irqs_on(frame, __FILE__, __LINE__)
+#define trace_irqs_on() __trace_irqs_on(__FILE__, __LINE__)
 #define trace_irqs_on_check(frame) __trace_irqs_on_check(frame, __FILE__, __LINE__)
-#define trace_irqs_off(frame) __trace_irqs_off(frame, __FILE__, __LINE__)
+#define trace_irqs_off() __trace_irqs_off(__FILE__, __LINE__)
 #define trace_irqs_off_check(frame) __trace_irqs_off_check(frame, __FILE__, __LINE__)
 
 
-/* Basic port I/O */
-static inline void outb_(u_int8_t v, u_int16_t port)
+static inline void lockdoc_outb(u_int8_t v, u_int16_t port)
 {
 	__asm __volatile("outb %0,%1" : : "a" (v), "dN" (port));
 }
@@ -110,7 +111,7 @@ static inline void lockdoc_log_memory(int alloc, const char *datatype, const voi
 	strncpy(la_buffer.type,datatype,LOG_CHAR_BUFFER_LEN);
 	la_buffer.type[LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
-	outb_(PING_CHAR,IO_PORT_LOG);
+	lockdoc_outb(PING_CHAR,IO_PORT_LOG);
 
 	x86_write_flags(eflags);
 }
@@ -161,7 +162,7 @@ static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const
     // irq_sync
     la_buffer.irq_sync = irq_sync;
 
-    outb_(PING_CHAR,IO_PORT_LOG);
+    lockdoc_outb(PING_CHAR,IO_PORT_LOG);
 
     x86_write_flags(eflags);
 }

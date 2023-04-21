@@ -12,28 +12,28 @@ struct log_action la_buffer;
 // Mutexes are always considered write locks
 inline void __mutex_enter(kmutex_t * lock, const char* file, int line, const char* func) {
 	_mutex_enter(lock);
-	lockdoc_log_lock(P_WRITE, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+	lockdoc_log_lock(P_WRITE, lock, file, line, func, LOCK_TYPE, 0);
 }
 
 inline void __mutex_exit(kmutex_t * lock, const char* file, int line, const char* func) {
-	lockdoc_log_lock(V_WRITE, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+	lockdoc_log_lock(V_WRITE, lock, file, line, func, LOCK_TYPE, 0);
 	_mutex_exit(lock);
 }
 
 inline void __mutex_spin_enter(kmutex_t * lock, const char* file, int line, const char* func) {
 	_mutex_spin_enter(lock);
-	lockdoc_log_lock(P_WRITE, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+	lockdoc_log_lock(P_WRITE, lock, file, line, func, LOCK_TYPE, 0);
 }
 
 inline void __mutex_spin_exit(kmutex_t * lock, const char* file, int line, const char* func) {
-	lockdoc_log_lock(V_WRITE, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+	lockdoc_log_lock(V_WRITE, lock, file, line, func, LOCK_TYPE, 0);
 	_mutex_spin_exit(lock);
 }
 
 inline int __mutex_tryenter(kmutex_t * lock, const char* file, int line, const char* func) {
 	int enter = _mutex_tryenter(lock);
 	if(enter != 0) {
-		lockdoc_log_lock(P_WRITE, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+		lockdoc_log_lock(P_WRITE, lock, file, line, func, LOCK_TYPE, 0);
 	}
 	return enter;
 }
@@ -44,46 +44,42 @@ inline int __mutex_tryenter(kmutex_t * lock, const char* file, int line, const c
 inline int __rw_tryupgrade(krwlock_t * lock, const char* file, int line, const char* func) {
 	int upgrade = _rw_tryupgrade(lock);
 	if(upgrade != 0) {
-		lockdoc_log_lock(V_READ, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
-		lockdoc_log_lock(P_WRITE, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+		lockdoc_log_lock(V_READ, lock, file, line, func, LOCK_TYPE, 0);
+		lockdoc_log_lock(P_WRITE, lock, file, line, func, LOCK_TYPE, 0);
 	}
 	return upgrade;
 }
 
 inline void __rw_downgrade(krwlock_t * lock, const char* file, int line, const char* func) {
 	_rw_downgrade(lock);
-	lockdoc_log_lock(V_WRITE, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
-	lockdoc_log_lock(P_READ, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+	lockdoc_log_lock(V_WRITE, lock, file, line, func, LOCK_TYPE, 0);
+	lockdoc_log_lock(P_READ, lock, file, line, func, LOCK_TYPE, 0);
 }
 
 inline void __rw_enter(krwlock_t * lock, const krw_t type, const char* file, int line, const char* func) {
 	_rw_enter(lock, type);
 	if(type == RW_READER)
-		lockdoc_log_lock(P_READ, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+		lockdoc_log_lock(P_READ, lock, file, line, func, LOCK_TYPE, 0);
 	else
-		lockdoc_log_lock(P_WRITE, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+		lockdoc_log_lock(P_WRITE, lock, file, line, func, LOCK_TYPE, 0);
 }
 
 inline int __rw_tryenter(krwlock_t * lock, const krw_t type, const char* file, int line, const char* func) {
 	int enter = _rw_tryenter(lock, type);
 	if(enter != 0) {
 		if(type == RW_READER)
-			lockdoc_log_lock(P_READ, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+			lockdoc_log_lock(P_READ, lock, file, line, func, LOCK_TYPE, 0);
 		else
-			lockdoc_log_lock(P_WRITE, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+			lockdoc_log_lock(P_WRITE, lock, file, line, func, LOCK_TYPE, 0);
 	}
 	return enter;
 }
 
 inline void __rw_exit(krwlock_t * lock, const char* file, int line, const char* func) {
-	/*
-	 * See sys/sys/rwlock.h
-	 * We cannot include this directly due to circular dependencies.
-	 */
 	if(rw_lock_op(lock) == RW_WRITER)
-		lockdoc_log_lock(V_WRITE, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+		lockdoc_log_lock(V_WRITE, lock, file, line, func, LOCK_TYPE, 0);
 	else
-		lockdoc_log_lock(V_READ, lock, file, line, func, LOCK_TYPE, LOCK_NONE);
+		lockdoc_log_lock(V_READ, lock, file, line, func, LOCK_TYPE, 0);
 	_rw_exit(lock);
 }
 #undef LOCK_TYPE
@@ -93,7 +89,7 @@ inline void __x86_disable_intr(const char* file, int line, const char* func) {
     
     eflags = x86_read_flags();
     if (eflags & (1 << 9)){  // Check if interrupts were enabled in the first place
-		lockdoc_log_lock(P_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", LOCK_NONE); 
+		lockdoc_log_lock(P_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", 0); 
     }
 
 	_x86_disable_intr();
@@ -104,10 +100,44 @@ inline void __x86_enable_intr(const char* file, int line, const char* func) {
     
     eflags = x86_read_flags();
     if (!(eflags & (1 << 9))){  // Check if interrupts were disabled in the first place
-		lockdoc_log_lock(V_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", LOCK_NONE); 
+		lockdoc_log_lock(V_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", 0); 
     }
 	
 	_x86_enable_intr();
+}
+
+void __trace_irqs_on(const char *file, int line) {
+	lockdoc_log_lock(V_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", 0);
+}
+
+void __trace_irqs_on_check(int tf_eflags, const char *file, int line) {
+	u_long cur_eflags;
+	cur_eflags = x86_read_flags();
+	if ((tf_eflags & (1 << 9)) && !(cur_eflags & (1 << 9))) {
+		lockdoc_log_lock(V_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", 0);
+	}
+}
+
+/* Since we cannot use the C DEFINES in interrupt handling asm routines */
+void __trace_irqs_on_asm(void) {
+	__trace_irqs_on("asm", 0);
+}
+
+void __trace_irqs_off(const char *file, int line) {
+	lockdoc_log_lock(P_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", 0);
+}
+
+void __trace_irqs_off_check(int tf_eflags, const char *file, int line) {
+	u_long cur_eflags;
+	cur_eflags = x86_read_flags();
+	if ((tf_eflags & (1 << 9)) && !(cur_eflags & (1 << 9))) {
+		lockdoc_log_lock(P_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", 0);
+	}
+}
+
+/* Since we cannot use the C DEFINES in interrupt handling asm routines */
+void __trace_irqs_off_asm(void) {
+	__trace_irqs_off("asm", 0);
 }
 
 int32_t lockdoc_get_ctx(void) {
@@ -117,30 +147,6 @@ int32_t lockdoc_get_ctx(void) {
 		return -1;
 	} else {
 		return curlwp->l_lid;
-	}
-}
-
-void __trace_irqs_on(struct trapframe *frame, const char *file, int line) {
-	lockdoc_log_lock(V_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", LOCK_NONE);
-}
-
-void __trace_irqs_on_check(struct trapframe *frame, const char *file, int line) {
-	u_long cur_eflags;
-	cur_eflags = x86_read_flags();
-	if ((frame->tf_eflags & (1 << 9)) && !(cur_eflags & (1 << 9))) {
-		lockdoc_log_lock(V_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", LOCK_NONE);
-	}
-}
-
-void __trace_irqs_off(struct trapframe *frame, const char *file, int line) {
-	lockdoc_log_lock(P_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", frame->tf_trapno);
-}
-
-void __trace_irqs_off_check(struct trapframe *frame, const char *file, int line) {
-	u_long cur_eflags;
-	cur_eflags = x86_read_flags();
-	if ((frame->tf_eflags & (1 << 9)) && !(cur_eflags & (1 << 9))) {
-		lockdoc_log_lock(P_WRITE, (void *)PSEUDOLOCK_ADDR_HARDIRQ, file, line, "dummy", "dummy", frame->tf_trapno);
 	}
 }
 
