@@ -183,6 +183,10 @@ __KERNEL_RCSID(0, "$NetBSD: vfs_vnode.c,v 1.149 2023/02/24 11:02:27 riastradh Ex
 #include <uvm/uvm_readahead.h>
 #include <uvm/uvm_stat.h>
 
+#ifdef LOCKDOC
+#include <sys/lockdoc.h>
+#endif
+
 /* Flags to vrelel. */
 #define	VRELEL_ASYNC	0x0001	/* Always defer to vrele thread. */
 
@@ -1564,6 +1568,9 @@ again:
 	if (error)
 		return error;
 	new_vip = vcache_alloc();
+#ifdef LOCKDOC
+	lockdoc_log_memory(1, "vnode_impl", new_vip, sizeof(vnode_impl_t));
+#endif
 	new_vip->vi_key = vcache_key;
 	vp = VIMPL_TO_VNODE(new_vip);
 	mutex_enter(&vcache_lock);
@@ -1576,6 +1583,9 @@ again:
 
 	/* If another thread beat us inserting this node, retry. */
 	if (vip != new_vip) {
+#ifdef LOCKDOC
+		lockdoc_log_memory(0, "vnode_impl", new_vip, sizeof(vnode_impl_t));
+#endif
 		vcache_dealloc(new_vip);
 		vfs_unbusy(mp);
 		goto again;
@@ -1588,6 +1598,9 @@ again:
 		mutex_enter(&vcache_lock);
 		SLIST_REMOVE(&vcache_hashtab[hash & vcache_hashmask],
 		    new_vip, vnode_impl, vi_hash);
+#ifdef LOCKDOC
+		lockdoc_log_memory(0, "vnode_impl", new_vip, sizeof(vnode_impl_t));
+#endif
 		vcache_dealloc(new_vip);
 		vfs_unbusy(mp);
 		KASSERT(*vpp == NULL);
@@ -1632,6 +1645,9 @@ vcache_new(struct mount *mp, struct vnode *dvp, struct vattr *vap,
 	if (error)
 		return error;
 	vip = vcache_alloc();
+#ifdef LOCKDOC
+	lockdoc_log_memory(1, "vnode_impl", vip, sizeof(vnode_impl_t));
+#endif
 	vip->vi_key.vk_mount = mp;
 	vp = VIMPL_TO_VNODE(vip);
 
@@ -1640,6 +1656,9 @@ vcache_new(struct mount *mp, struct vnode *dvp, struct vattr *vap,
 	    &vip->vi_key.vk_key_len, &vip->vi_key.vk_key);
 	if (error) {
 		mutex_enter(&vcache_lock);
+#ifdef LOCKDOC
+		lockdoc_log_memory(0, "vnode_impl", vip, sizeof(vnode_impl_t));
+#endif
 		vcache_dealloc(vip);
 		vfs_unbusy(mp);
 		KASSERT(*vpp == NULL);
@@ -1708,14 +1727,20 @@ vcache_rekey_enter(struct mount *mp, struct vnode *vp,
 	new_hash = vcache_hash(&new_vcache_key);
 
 	new_vip = vcache_alloc();
+#ifdef LOCKDOC
+	lockdoc_log_memory(1, "vnode_impl", new_vip, sizeof(vnode_impl_t));
+#endif
 	new_vip->vi_key = new_vcache_key;
 
 	/* Insert locked new node used as placeholder. */
 	mutex_enter(&vcache_lock);
 	vip = vcache_hash_lookup(&new_vcache_key, new_hash);
 	if (vip != NULL) {
+#ifdef LOCKDOC
+		lockdoc_log_memory(0, "vnode_impl", new_vip, sizeof(vnode_impl_t));
+#endif
 		vcache_dealloc(new_vip);
-		return EEXIST;
+		return EEXIST;.()
 	}
 	SLIST_INSERT_HEAD(&vcache_hashtab[new_hash & vcache_hashmask],
 	    new_vip, vi_hash);
@@ -1780,6 +1805,9 @@ vcache_rekey_exit(struct mount *mp, struct vnode *vp,
 	/* Remove new node used as placeholder. */
 	SLIST_REMOVE(&vcache_hashtab[new_hash & vcache_hashmask],
 	    new_vip, vnode_impl, vi_hash);
+#ifdef LOCKDOC
+	lockdoc_log_memory(0, "vnode_impl", new_vip, sizeof(vnode_impl_t));
+#endif
 	vcache_dealloc(new_vip);
 }
 
