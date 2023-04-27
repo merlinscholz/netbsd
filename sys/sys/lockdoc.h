@@ -97,7 +97,7 @@ static inline void lockdoc_log_memory(int alloc, const char *datatype, const voi
 	memset(&la_buffer,0,sizeof(la_buffer));
 
 	la_buffer.action = (alloc == 1 ? LOCKDOC_ALLOC : LOCKDOC_FREE);
-	la_buffer.ptr = (unsigned long)ptr;
+	la_buffer.ptr = (uint32_t)ptr;
 	la_buffer.size = size;
 	la_buffer.ctx = lockdoc_get_ctx();
 
