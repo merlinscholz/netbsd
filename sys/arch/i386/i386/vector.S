@@ -91,6 +91,15 @@ __KERNEL_RCSID(0, "$NetBSD: vector.S,v 1.89 2022/09/07 00:40:18 knakahara Exp $"
 
 #include "assym.h"
 
+#ifdef LOCKDOC
+#define TRACE_IRQS_OFF	movl $__trace_irqs_off_asm,%eax; call *%eax
+#define TRACE_IRQS_ON	movl $__trace_irqs_on_asm,%eax; call *%eax
+#else
+#define TRACE_IRQS_OFF
+#define TRACE_IRQS_ON
+#endif
+
+
 /*
  * Macros for interrupt entry, call to handler, and exit.
  *
@@ -310,14 +319,12 @@ IDTVEC(resume_lapic_ltimer)
 	pushl	%ebx
 	IDEPTH_INCR
 	movb	$IPL_CLOCK,CPUVAR(ILEVEL)
-	movl	$__trace_irqs_off_asm,%eax
-	call	*%eax
+	TRACE_IRQS_OFF
 	sti
 	pushl	$0
 	call	_C_LABEL(lapic_clockintr)
 	addl	$4,%esp
-	movl	$__trace_irqs_on_asm,%eax
-	call	*%eax
+	TRACE_IRQS_ON
 	cli
 	jmp	_C_LABEL(Xdoreti)
 2:
@@ -374,7 +381,6 @@ IDTVEC_END(resume_hyperv_hypercall)
  * for specific PICs.
  */
 
-#ifdef LOCKDOC
 #define	INTRSTUB1(name, num, sub, off, early_ack, late_ack, mask, unmask, level_mask) \
 IDTVEC(recurse_ ## name ## num)						;\
 	INTR_RECURSE_HWFRAME						;\
@@ -411,8 +417,7 @@ IDTVEC(intr_ ## name ## num)						;\
 	movb	%bl,CPUVAR(ILEVEL)					;\
 	/* switch stack if necessary, and push a ptr to our intrframe */ \
 	IDEPTH_INCR							;\
-	movl	$__trace_irqs_off_asm,%eax				;\
-	call	*%eax							;\
+	TRACE_IRQS_OFF							;\
 	sti								;\
 	movl	IS_HANDLERS(%ebp),%ebx					;\
 	cmpl	$0,IS_MASK_COUNT(%ebp)	/* source currently masked? */	;\
@@ -437,8 +442,7 @@ IDTVEC(intr_ ## name ## num)						;\
 	jmp	_C_LABEL(Xdoreti)	/* lower spl and do ASTs */	;\
 7:									\
 	cli								;\
-	movl	$__trace_irqs_on_asm,%eax				;\
-	call	*%eax							;\
+	TRACE_IRQS_ON							;\
 	btsl	$(num - sub),CPUVAR(IPENDING) + off			;\
 8:	level_mask(num)							;\
 	late_ack(num)							;\
@@ -460,89 +464,6 @@ IDTVEC(intr_ ## name ## num)						;\
 	addl	$4,%esp							;\
 	INTRFASTEXIT							;\
 IDTVEC_END(intr_ ## name ## num)
-#else
-#define	INTRSTUB1(name, num, sub, off, early_ack, late_ack, mask, unmask, level_mask) \
-IDTVEC(recurse_ ## name ## num)						;\
-	INTR_RECURSE_HWFRAME						;\
-	subl	$4,%esp							;\
-	pushl	$T_ASTFLT		/* trap # for doing ASTs */	;\
-	INTRENTRY							;\
-IDTVEC_END(recurse_ ## name ## num)					;\
-IDTVEC(resume_ ## name ## num)						\
-	movl	$IREENT_MAGIC,TF_ERR(%esp)				;\
-	movl	%ebx,%esi						;\
-	movl	CPUVAR(ISOURCES) + (num) * 4,%ebp			;\
-	movl	IS_MAXLEVEL(%ebp),%ebx					;\
-	jmp	1f							;\
-IDTVEC_END(resume_ ## name ## num)					;\
-IDTVEC(intr_ ## name ## num)						;\
-	pushl	$0			/* dummy error code */		;\
-	pushl	$T_ASTFLT		/* trap # for doing ASTs */	;\
-	INTRENTRY							;\
-	movl	CPUVAR(ISOURCES) + (num) * 4,%ebp			;\
-	mask(num)			/* mask it in hardware */	;\
-	early_ack(num)			/* and allow other intrs */	;\
-	testl	%ebp,%ebp						;\
-	jz	9f			/* stray */			;\
-	movl	IS_MAXLEVEL(%ebp),%ebx					;\
-	movzbl	CPUVAR(ILEVEL),%esi					;\
-	cmpl	%ebx,%esi						;\
-	jae	10f			/* currently masked; hold it */	;\
-	addl	$1,CPUVAR(NINTR)	/* statistical info */		;\
-	adcl	$0,CPUVAR(NINTR)+4					;\
-	addl	$1,IS_EVCNTLO(%ebp)	/* inc event counter */		;\
-	adcl	$0,IS_EVCNTHI(%ebp)					;\
-1:									\
-	pushl	%esi			/* if_ppi */			;\
-	movb	%bl,CPUVAR(ILEVEL)					;\
-	/* switch stack if necessary, and push a ptr to our intrframe */ \
-	IDEPTH_INCR							;\
-	sti								;\
-	movl	IS_HANDLERS(%ebp),%ebx					;\
-	cmpl	$0,IS_MASK_COUNT(%ebp)	/* source currently masked? */	;\
-	jne	12f			/* yes, hold it */		;\
-6:									\
-	movl	IH_LEVEL(%ebx),%eax					;\
-	cmpl	%esi,%eax						;\
-	jle	7f							;\
-	pushl	IH_ARG(%ebx)						;\
-	movl	IH_FUN(%ebx),%edi					;\
-	movb	%al,CPUVAR(ILEVEL)					;\
-	movl	IH_NEXT(%ebx),%ebx	/* next handler in chain */	;\
-	call	*%edi			/* call it */			;\
-	addl	$4,%esp			/* toss the arg */		;\
-	testl	%ebx,%ebx						;\
-	jnz	6b							;\
-	cmpl	$0,IS_MASK_COUNT(%ebp)	/* source now masked? */	;\
-	jne	12f			/* yes, deal */			;\
-	cli								;\
-	unmask(num)			/* unmask it in hardware */	;\
-	late_ack(num)							;\
-	jmp	_C_LABEL(Xdoreti)	/* lower spl and do ASTs */	;\
-7:									\
-	cli								;\
-	btsl	$(num - sub),CPUVAR(IPENDING) + off			;\
-8:	level_mask(num)							;\
-	late_ack(num)							;\
-	jmp	_C_LABEL(Xdoreti)	/* lower spl and do ASTs */	;\
-12:									\
-	cli								;\
-	btsl	$(num - sub),CPUVAR(IMASKED) + off			;\
-	btrl	$(num - sub),CPUVAR(IPENDING) + off			;\
-	jmp	8b							;\
-10:									\
-	btsl	$(num - sub),CPUVAR(IPENDING) + off			;\
-	level_mask(num)							;\
-	late_ack(num)							;\
-	INTRFASTEXIT							;\
-9:									\
-	pushl	%esp			/* for unmask */		;\
-	unmask(num)							;\
-	late_ack(num)							;\
-	addl	$4,%esp							;\
-	INTRFASTEXIT							;\
-IDTVEC_END(intr_ ## name ## num)
-#endif
 
 #define	INTRSTUB(name, num, early_ack, late_ack, mask, unmask, level_mask) \
     INTRSTUB1(name, num, 0, 0, early_ack, late_ack, mask, unmask, level_mask)

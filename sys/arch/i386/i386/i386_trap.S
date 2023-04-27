@@ -400,8 +400,7 @@ END(trap_return_fault_return)
 /* LINTSTUB: Ignore */
 ENTRY(alltraps)
 	INTRENTRY
-	movl	$__trace_irqs_off_asm,%eax
-	call	*%eax
+	TRACE_IRQS_OFF
 	STI(%eax)
 
 calltrap:
