@@ -400,8 +400,7 @@ END(trap_return_fault_return)
 /* LINTSTUB: Ignore */
 ENTRY(alltraps)
 	INTRENTRY
-	movl	$__trace_irqs_off_asm,%eax
-	call	*%eax
+	TRACE_IRQS_OFF
 	STI(%eax)
 calltrap:
 #ifdef DIAGNOSTIC
@@ -470,8 +469,7 @@ _C_LABEL(trapreturn):	.globl	trapreturn
 	jmp	.Lalltraps_checkast	/* re-check ASTs */
 4:	.asciz	"SPL NOT LOWERED ON TRAP EXIT\n"
 #endif /* DIAGNOSTIC */
-9:	movl	$__trace_irqs_on_asm,%eax
-	call	*%eax
+9:	TRACE_IRQS_ON
 	STI(%eax)
 	call	_C_LABEL(pmap_load)
 	jmp	.Lalltraps_checkast	/* re-check ASTs */

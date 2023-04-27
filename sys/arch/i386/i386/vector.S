@@ -91,6 +91,15 @@ __KERNEL_RCSID(0, "$NetBSD: vector.S,v 1.83 2019/02/15 08:54:01 nonaka Exp $");
 
 #include "assym.h"
 
+#ifdef LOCKDOC
+#define TRACE_IRQS_OFF	movl $__trace_irqs_off_asm,%eax; call *%eax
+#define TRACE_IRQS_ON	movl $__trace_irqs_on_asm,%eax; call *%eax
+#else
+#define TRACE_IRQS_OFF
+#define TRACE_IRQS_ON
+#endif
+
+
 /*
  * Macros for interrupt entry, call to handler, and exit.
  *
@@ -310,14 +319,12 @@ IDTVEC(resume_lapic_ltimer)
 	pushl	%ebx
 	IDEPTH_INCR
 	movl	$IPL_CLOCK,CPUVAR(ILEVEL)
-	movl	$__trace_irqs_off_asm,%eax
-	call	*%eax
+	TRACE_IRQS_OFF
 	sti
 	pushl	$0
 	call	_C_LABEL(lapic_clockintr)
 	addl	$4,%esp
-	movl	$__trace_irqs_on_asm,%eax
-	call	*%eax
+	TRACE_IRQS_ON
 	cli
 	jmp	_C_LABEL(Xdoreti)
 2:
@@ -374,7 +381,6 @@ IDTVEC_END(resume_hyperv_hypercall)
  * for specific PICs.
  */
 
-#ifdef LOCKDOC
 #define	INTRSTUB(name, num, early_ack, late_ack, mask, unmask, level_mask) \
 IDTVEC(recurse_ ## name ## num)						;\
 	INTR_RECURSE_HWFRAME						;\
@@ -411,8 +417,7 @@ IDTVEC(intr_ ## name ## num)						;\
 	movl	%ebx,CPUVAR(ILEVEL)					;\
 	/* switch stack if necessary, and push a ptr to our intrframe */ \
 	IDEPTH_INCR							;\
-	movl	$__trace_irqs_off_asm,%eax				;\
-	call	*%eax							;\
+	TRACE_IRQS_OFF							;\
 	sti								;\
 	movl	IS_HANDLERS(%ebp),%ebx					;\
 6:									\
@@ -433,8 +438,7 @@ IDTVEC(intr_ ## name ## num)						;\
 	jmp	_C_LABEL(Xdoreti)	/* lower spl and do ASTs */	;\
 7:									\
 	cli								;\
-	movl	$__trace_irqs_on_asm,%eax				;\
-	call	*%eax							;\
+	TRACE_IRQS_ON							;\
 	orl	$(1 << num),CPUVAR(IPENDING)				;\
 	level_mask(num)							;\
 	late_ack(num)							;\
@@ -451,80 +455,6 @@ IDTVEC(intr_ ## name ## num)						;\
 	addl	$4,%esp							;\
 	INTRFASTEXIT							;\
 IDTVEC_END(intr_ ## name ## num)
-#else
-#define	INTRSTUB(name, num, early_ack, late_ack, mask, unmask, level_mask) \
-IDTVEC(recurse_ ## name ## num)						;\
-	INTR_RECURSE_HWFRAME						;\
-	subl	$4,%esp							;\
-	pushl	$T_ASTFLT		/* trap # for doing ASTs */	;\
-	INTRENTRY							;\
-IDTVEC_END(recurse_ ## name ## num)					;\
-IDTVEC(resume_ ## name ## num)						\
-	movl	$IREENT_MAGIC,TF_ERR(%esp)				;\
-	movl	%ebx,%esi						;\
-	movl	CPUVAR(ISOURCES) + (num) * 4,%ebp			;\
-	movl	IS_MAXLEVEL(%ebp),%ebx					;\
-	jmp	1f							;\
-IDTVEC_END(resume_ ## name ## num)					;\
-IDTVEC(intr_ ## name ## num)						;\
-	pushl	$0			/* dummy error code */		;\
-	pushl	$T_ASTFLT		/* trap # for doing ASTs */	;\
-	INTRENTRY							;\
-	movl	CPUVAR(ISOURCES) + (num) * 4,%ebp			;\
-	mask(num)			/* mask it in hardware */	;\
-	early_ack(num)			/* and allow other intrs */	;\
-	testl	%ebp,%ebp						;\
-	jz	9f			/* stray */			;\
-	movl	IS_MAXLEVEL(%ebp),%ebx					;\
-	movl	CPUVAR(ILEVEL),%esi					;\
-	cmpl	%ebx,%esi						;\
-	jae	10f			/* currently masked; hold it */	;\
-	addl	$1,CPUVAR(NINTR)	/* statistical info */		;\
-	adcl	$0,CPUVAR(NINTR)+4					;\
-	addl	$1,IS_EVCNTLO(%ebp)	/* inc event counter */		;\
-	adcl	$0,IS_EVCNTHI(%ebp)					;\
-1:									\
-	pushl	%esi			/* if_ppi */			;\
-	movl	%ebx,CPUVAR(ILEVEL)					;\
-	/* switch stack if necessary, and push a ptr to our intrframe */ \
-	IDEPTH_INCR							;\
-	sti	
-	movl	IS_HANDLERS(%ebp),%ebx					;\
-6:									\
-	movl	IH_LEVEL(%ebx),%edi					;\
-	cmpl	%esi,%edi						;\
-	jle	7f							;\
-	pushl	IH_ARG(%ebx)						;\
-	movl	IH_FUN(%ebx),%eax					;\
-	movl	%edi,CPUVAR(ILEVEL)					;\
-	movl	IH_NEXT(%ebx),%ebx	/* next handler in chain */	;\
-	call	*%eax			/* call it */			;\
-	addl	$4,%esp			/* toss the arg */		;\
-	testl	%ebx,%ebx						;\
-	jnz	6b							;\
-	cli								;\
-	unmask(num)			/* unmask it in hardware */	;\
-	late_ack(num)							;\
-	jmp	_C_LABEL(Xdoreti)	/* lower spl and do ASTs */	;\
-7:									\
-	cli								;\
-	orl	$(1 << num),CPUVAR(IPENDING)				;\
-	level_mask(num)							;\
-	late_ack(num)							;\
-	jmp	_C_LABEL(Xdoreti)	/* lower spl and do ASTs */	;\
-10:									\
-	orl	$(1 << num),CPUVAR(IPENDING)				;\
-	level_mask(num)							;\
-	late_ack(num)							;\
-	INTRFASTEXIT							;\
-9:									\
-	pushl	%esp			/* for unmask */		;\
-	unmask(num)							;\
-	late_ack(num)							;\
-	addl	$4,%esp							;\
-	INTRFASTEXIT							;\
-IDTVEC_END(intr_ ## name ## num)
-#endif
 
 #define ICUADDR IO_ICU1
 
