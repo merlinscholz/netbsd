@@ -120,7 +120,7 @@ void __trace_irqs_on_check(int tf_eflags, const char *file, int line) {
 
 /* Since we cannot use the C DEFINES in interrupt handling asm routines */
 void __trace_irqs_on_asm(void) {
-	__trace_irqs_on("asm", 0);
+	__trace_irqs_on("dummy", 0);
 }
 
 void __trace_irqs_off(const char *file, int line) {
