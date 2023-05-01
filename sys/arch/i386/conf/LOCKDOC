@@ -322,7 +322,9 @@ acpiwmi*	at acpi?		# ACPI WMI Mapper
 #aibs*		at acpi?		# ASUSTeK AI Booster hardware monitor
 #asus*		at acpi?		# ASUS hotkeys
 attimer*	at acpi?		# AT Timer
-com*		at acpi?		# Serial communications interface
+
+# Comment out the com ports on ACPI, since Bochs' dsdt only shows the first two
+#com*		at acpi?		# Serial communications interface
 #fdc*		at acpi?		# Floppy disk controller
 #fujbp*		at acpi?		# Fujitsu Brightness & Pointer
 #fujhk*		at acpi?		# Fujitsu Hotkeys
@@ -556,7 +558,7 @@ sysbeep0	at pcppi?
 # Serial Devices
 
 # PCI serial interfaces
-com*	at puc? port ?			# 16x50s on "universal" comm boards
+#com*	at puc? port ?			# 16x50s on "universal" comm boards
 cy*	at pci? dev ? function ?	# Cyclades Cyclom-Y serial boards
 cz*	at pci? dev ? function ?	# Cyclades-Z multi-port serial boards
 
@@ -574,10 +576,10 @@ cz*	at pci? dev ? function ?	# Cyclades-Z multi-port serial boards
 
 # ISA serial interfaces
 #options 	COM_HAYESP		# adds Hayes ESP serial board support
-#com0	at isa? port 0x3f8 irq 4	# Standard PC serial ports
-#com1	at isa? port 0x2f8 irq 3
-#com2	at isa? port 0x3e8 irq 5
-#com3	at isa? port 0x2e8 irq 9
+com0	at isa? port 0x3f8 irq 4	# Standard PC serial ports
+com1	at isa? port 0x2f8 irq 3
+com2	at isa? port 0x3e8 irq 4
+com3	at isa? port 0x2e8 irq 3
 #ast0	at isa? port 0x1a0 irq 5	# AST 4-port serial cards
 #com*	at ast? slave ?
 #boca0	at isa? port 0x100 irq 5	# BOCA 8-port serial cards
