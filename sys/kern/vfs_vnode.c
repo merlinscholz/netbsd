@@ -1069,6 +1069,11 @@ vcache_init(void)
 	vcache_hashsize = desiredvnodes;
 	vcache_hashtab = hashinit(desiredvnodes, HASH_SLIST, true,
 	    &vcache_hashmask);
+#ifdef LOCKDOC
+	// TODO
+	//lockdoc_log_memory(1, "hashhead", vcache_hashtab, sizeof(*vcache_hashtab));
+#endif
+
 }
 
 static void
@@ -1149,6 +1154,10 @@ vcache_alloc(void)
 
 	lru_requeue(vp, &lru_free_list);
 
+#ifdef LOCKDOC
+	lockdoc_log_memory(1, "vnode_impl", vip, sizeof(*vip));
+#endif
+
 	return vip;
 }
 
@@ -1171,6 +1180,11 @@ vcache_dealloc(vnode_impl_t *vip)
 	vp->v_op = dead_vnodeop_p;
 	VSTATE_CHANGE(vp, VS_LOADING, VS_RECLAIMED);
 	mutex_exit(&vcache_lock);
+
+	/*
+	 * LOCKDOC: No log_memory here, since vrelel calls
+	 * vcache_free or vcache_reclaim at some point
+	 */
 	vrelel(vp, 0);
 }
 
@@ -1200,6 +1214,10 @@ vcache_free(vnode_impl_t *vip)
 	uvm_obj_destroy(&vp->v_uobj, true);
 	cv_destroy(&vp->v_cv);
 	pool_cache_put(vcache_pool, vip);
+
+#ifdef LOCKDOC
+	lockdoc_log_memory(0, "vnode_impl", vip, sizeof(*vip));
+#endif
 }
 
 /*
@@ -1326,9 +1344,6 @@ again:
 	if (error)
 		return error;
 	new_vip = vcache_alloc();
-#ifdef LOCKDOC
-	lockdoc_log_memory(1, "vnode_impl", new_vip, sizeof(*new_vip));
-#endif
 	new_vip->vi_key = vcache_key;
 	vp = VIMPL_TO_VNODE(new_vip);
 	mutex_enter(&vcache_lock);
@@ -1341,9 +1356,6 @@ again:
 
 	/* If another thread beat us inserting this node, retry. */
 	if (vip != new_vip) {
-#ifdef LOCKDOC
-		lockdoc_log_memory(0, "vnode_impl", new_vip, sizeof(*new_vip));
-#endif
 		vcache_dealloc(new_vip);
 		vfs_unbusy(mp);
 		goto again;
@@ -1356,9 +1368,6 @@ again:
 		mutex_enter(&vcache_lock);
 		SLIST_REMOVE(&vcache_hashtab[hash & vcache_hashmask],
 		    new_vip, vnode_impl, vi_hash);
-#ifdef LOCKDOC
-		lockdoc_log_memory(0, "vnode_impl", new_vip, sizeof(*new_vip));
-#endif
 		vcache_dealloc(new_vip);
 		vfs_unbusy(mp);
 		KASSERT(*vpp == NULL);
@@ -1403,9 +1412,6 @@ vcache_new(struct mount *mp, struct vnode *dvp, struct vattr *vap,
 	if (error)
 		return error;
 	vip = vcache_alloc();
-#ifdef LOCKDOC
-	lockdoc_log_memory(1, "vnode_impl", vip, sizeof(*vip));
-#endif
 	vip->vi_key.vk_mount = mp;
 	vp = VIMPL_TO_VNODE(vip);
 
@@ -1414,9 +1420,6 @@ vcache_new(struct mount *mp, struct vnode *dvp, struct vattr *vap,
 	    &vip->vi_key.vk_key_len, &vip->vi_key.vk_key);
 	if (error) {
 		mutex_enter(&vcache_lock);
-#ifdef LOCKDOC
-		lockdoc_log_memory(0, "vnode_impl", vip, sizeof(*vip));
-#endif
 		vcache_dealloc(vip);
 		vfs_unbusy(mp);
 		KASSERT(*vpp == NULL);
@@ -1485,18 +1488,12 @@ vcache_rekey_enter(struct mount *mp, struct vnode *vp,
 	new_hash = vcache_hash(&new_vcache_key);
 
 	new_vip = vcache_alloc();
-#ifdef LOCKDOC
-	lockdoc_log_memory(1, "vnode_impl", new_vip, sizeof(*new_vip));
-#endif
 	new_vip->vi_key = new_vcache_key;
 
 	/* Insert locked new node used as placeholder. */
 	mutex_enter(&vcache_lock);
 	vip = vcache_hash_lookup(&new_vcache_key, new_hash);
 	if (vip != NULL) {
-#ifdef LOCKDOC
-		lockdoc_log_memory(0, "vnode_impl", new_vip, sizeof(*new_vip));
-#endif
 		vcache_dealloc(new_vip);
 		return EEXIST;
 	}
@@ -1563,9 +1560,6 @@ vcache_rekey_exit(struct mount *mp, struct vnode *vp,
 	/* Remove new node used as placeholder. */
 	SLIST_REMOVE(&vcache_hashtab[new_hash & vcache_hashmask],
 	    new_vip, vnode_impl, vi_hash);
-#ifdef LOCKDOC
-	lockdoc_log_memory(0, "vnode_impl", new_vip, sizeof(*new_vip));
-#endif
 	vcache_dealloc(new_vip);
 }
 
@@ -1574,6 +1568,11 @@ vcache_rekey_exit(struct mount *mp, struct vnode *vp,
  *
  * Must be called with vnode locked and will return unlocked.
  * Must be called with the interlock held, and will return with it held.
+ */
+/* 
+ * LOCKDOC: All functions called by vcache_reclaim are blacklisted in the
+ * LOCKDOC experiments since all references to the data structure
+ * are made obsolete manually (rather than precventing access through locks)
  */
 static void
 vcache_reclaim(vnode_t *vp)
@@ -1682,7 +1681,7 @@ vcache_reclaim(vnode_t *vp)
 	vp->v_tag = VT_NON;
 	KNOTE(&vp->v_klist, NOTE_REVOKE);
 	mutex_exit(vp->v_interlock);
-
+	
 	/*
 	 * Move to dead mount.  Must be after changing the operations
 	 * vector as vnode operations enter the mount before using the
@@ -1695,6 +1694,10 @@ vcache_reclaim(vnode_t *vp)
 	mutex_enter(vp->v_interlock);
 	fstrans_done(mp);
 	KASSERT((vp->v_iflag & VI_ONWORKLST) == 0);
+
+#ifdef LOCKDOC
+	lockdoc_log_memory(0, "vnode_impl", vip, sizeof(*vip));
+#endif
 }
 
 /*
