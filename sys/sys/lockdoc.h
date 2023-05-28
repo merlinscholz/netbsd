@@ -78,18 +78,26 @@ krw_t   rw_lock_op(krwlock_t *rw);
 #define x86_disable_intr() __x86_disable_intr(__FILE__, __LINE__, __func__)
 #define x86_enable_intr() __x86_enable_intr(__FILE__, __LINE__, __func__)
 
+/*
+ * TODO Why no __func__ here?
+ */
 #define trace_irqs_on() __trace_irqs_on(__FILE__, __LINE__)
 #define trace_irqs_on_check(frame) __trace_irqs_on_check(frame, __FILE__, __LINE__)
 #define trace_irqs_off() __trace_irqs_off(__FILE__, __LINE__)
 #define trace_irqs_off_check(frame) __trace_irqs_off_check(frame, __FILE__, __LINE__)
 
+/*
+ * Define LOCKDOC_LOG_MEMORY to automatically include file, line and function
+ */
+
+#define lockdoc_log_memory(alloc, datatype, ptr, size) __lockdoc_log_memory(alloc, datatype, ptr, size, __FILE__, __LINE__, __func__)
 
 static inline void lockdoc_outb(u_int8_t v, u_int16_t port)
 {
 	__asm __volatile("outb %0,%1" : : "a" (v), "dN" (port));
 }
 
-static inline void lockdoc_log_memory(int alloc, const char *datatype, const void *ptr, size_t size) {
+static inline void __lockdoc_log_memory(int alloc, const char *datatype, const void *ptr, size_t size, const char *file, int line, const char* func) {
     u_long eflags;
     eflags = x86_read_flags();
     _x86_disable_intr();
@@ -100,6 +108,13 @@ static inline void lockdoc_log_memory(int alloc, const char *datatype, const voi
 	la_buffer.ptr = (uint32_t)ptr;
 	la_buffer.size = size;
 	la_buffer.ctx = lockdoc_get_ctx();
+
+    // file
+    strncpy(la_buffer.file, file, LOG_CHAR_BUFFER_LEN);
+	la_buffer.file[LOG_CHAR_BUFFER_LEN - 1] = '\0';
+    la_buffer.line = line;
+	strncpy(la_buffer.function, func, LOG_CHAR_BUFFER_LEN);
+	la_buffer.function[LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
 	/*
 	 * One could use a more safe string function, e.g., strlcpy. 
