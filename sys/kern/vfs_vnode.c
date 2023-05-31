@@ -183,6 +183,11 @@ __KERNEL_RCSID(0, "$NetBSD: vfs_vnode.c,v 1.103 2019/02/20 10:07:27 hannken Exp 
 #include <uvm/uvm_readahead.h>
 
 #ifdef LOCKDOC
+/*
+ * LOCKDOC TODO: Right now, only completely free'd vnodes are being logged
+ * as free'd by FAIL*. Evaluate, whether recycled vnodes need to be handled
+ * as well.
+ */
 #include <sys/lockdoc.h>
 #endif
 
@@ -820,6 +825,9 @@ vrelel(vnode_t *vp, int flags)
 		return;
 	}
 
+	// LOCKDOC TEST CODE
+	KASSERT(VSTATE_GET(vp) == VS_RECLAIMED);
+
 	if (VSTATE_GET(vp) == VS_RECLAIMED && vp->v_holdcnt == 0) {
 		/*
 		 * It's clean so destroy it.  It isn't referenced
@@ -1183,7 +1191,7 @@ vcache_dealloc(vnode_impl_t *vip)
 
 	/*
 	 * LOCKDOC: No log_memory here, since vrelel calls
-	 * vcache_free or vcache_reclaim at some point
+	 * vcache_free directly or defers the freeing
 	 */
 	vrelel(vp, 0);
 }
@@ -1694,10 +1702,6 @@ vcache_reclaim(vnode_t *vp)
 	mutex_enter(vp->v_interlock);
 	fstrans_done(mp);
 	KASSERT((vp->v_iflag & VI_ONWORKLST) == 0);
-
-#ifdef LOCKDOC
-	lockdoc_log_memory(0, "vnode_impl", vip, sizeof(*vip));
-#endif
 }
 
 /*
