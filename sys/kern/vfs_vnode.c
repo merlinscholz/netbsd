@@ -424,6 +424,11 @@ vnalloc_marker(struct mount *mp)
 	vp->v_type = VBAD;
 	vip->vi_state = VS_MARKER;
 
+#ifdef LOCKDOC
+	lockdoc_log_memory(1, "vnode_impl", vip, sizeof(*vip));
+	lockdoc_log_memory(1, "kmutex_t", vp->v_interlock, sizeof(*(vp->v_interlock)));
+#endif
+
 	return vp;
 }
 
@@ -437,6 +442,12 @@ vnfree_marker(vnode_t *vp)
 
 	vip = VNODE_TO_VIMPL(vp);
 	KASSERT(vip->vi_state == VS_MARKER);
+
+#ifdef LOCKDOC
+	lockdoc_log_memory(0, "vnode_impl", vip, sizeof(*vip));
+	lockdoc_log_memory(0, "kmutex_t", vp->v_interlock, sizeof(*(vp->v_interlock)));
+#endif
+
 	uvm_obj_destroy(&vp->v_uobj, true);
 	pool_cache_put(vcache_pool, vip);
 }
@@ -1077,11 +1088,6 @@ vcache_init(void)
 	vcache_hashsize = desiredvnodes;
 	vcache_hashtab = hashinit(desiredvnodes, HASH_SLIST, true,
 	    &vcache_hashmask);
-#ifdef LOCKDOC
-	// TODO
-	//lockdoc_log_memory(1, "hashhead", vcache_hashtab, sizeof(*vcache_hashtab));
-#endif
-
 }
 
 static void
@@ -1164,6 +1170,7 @@ vcache_alloc(void)
 
 #ifdef LOCKDOC
 	lockdoc_log_memory(1, "vnode_impl", vip, sizeof(*vip));
+	lockdoc_log_memory(1, "kmutex_t", vp->v_interlock, sizeof(*(vp->v_interlock)));
 #endif
 
 	return vip;
@@ -1218,14 +1225,15 @@ vcache_free(vnode_impl_t *vip)
 	if (vp->v_type == VBLK || vp->v_type == VCHR)
 		spec_node_destroy(vp);
 
+#ifdef LOCKDOC
+	lockdoc_log_memory(0, "vnode_impl", vip, sizeof(*vip));
+	lockdoc_log_memory(0, "kmutex_t", vp->v_interlock, sizeof(*(vp->v_interlock)));
+#endif
+
 	rw_destroy(&vip->vi_lock);
 	uvm_obj_destroy(&vp->v_uobj, true);
 	cv_destroy(&vp->v_cv);
 	pool_cache_put(vcache_pool, vip);
-
-#ifdef LOCKDOC
-	lockdoc_log_memory(0, "vnode_impl", vip, sizeof(*vip));
-#endif
 }
 
 /*

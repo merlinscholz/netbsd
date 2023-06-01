@@ -1034,7 +1034,7 @@ cache_cpu_init(struct cpu_info *ci)
 	size_t sz;
 
 	sz = roundup2(sizeof(*cpup), coherency_unit) + coherency_unit;
-	cpup = kmem_zalloc(sz, KM_SLEEP);
+	cpup = kmem_zalloc(sz, KM_SLEEP);	// TODO LOCKDOC
 	cpup = (void *)roundup2((uintptr_t)cpup, coherency_unit);
 	mutex_init(&cpup->cpu_lock, MUTEX_DEFAULT, IPL_NONE);
 	ci->ci_data.cpu_nch = cpup;
