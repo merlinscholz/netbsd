@@ -83,6 +83,10 @@ __KERNEL_RCSID(0, "$NetBSD: vfs_cache.c,v 1.120 2017/03/18 22:36:56 riastradh Ex
 #include <sys/time.h>
 #include <sys/vnode_impl.h>
 
+#ifdef LOCKDOC
+#include <sys/lockdoc.h>
+#endif
+
 #define NAMECACHE_ENTER_REVERSE
 /*
  * Name caching works as follows:
@@ -976,6 +980,9 @@ nchinit(void)
 	KASSERT(namecache_cache != NULL);
 
 	namecache_lock = mutex_obj_alloc(MUTEX_DEFAULT, IPL_NONE);
+#ifdef LOCKDOC
+	lockdoc_log_memory(1, "kmutex_t", namecache_lock, sizeof(*namecache_lock));
+#endif
 
 	nchashtbl = hashinit(desiredvnodes, HASH_LIST, true, &nchash);
 	ncvhashtbl =
