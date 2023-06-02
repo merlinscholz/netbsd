@@ -202,6 +202,10 @@ __KERNEL_RCSID(0, "$NetBSD: vfs_cache.c,v 1.154 2023/04/29 10:07:22 riastradh Ex
 
 #include <miscfs/genfs/genfs.h>
 
+#ifdef LOCKDOC
+#include <sys/lockdoc.h>
+#endif
+
 static void	cache_activate(struct namecache *);
 static void	cache_update_stats(void *);
 static int	cache_compare_nodes(void *, const void *, const void *);
@@ -1035,6 +1039,10 @@ cache_have_id(struct vnode *vp)
 void
 cache_enter_mount(struct vnode *cvp, struct vnode *rvp)
 {
+#ifdef LOCKDOC
+	// TODO LOCKDOC namechache_lock has been removed
+	//lockdoc_log_memory(1, "kmutex_t", namecache_lock, sizeof(*namecache_lock));
+#endif
 
 	KASSERT(vrefcnt(cvp) > 0);
 	KASSERT(vrefcnt(rvp) > 0);
