@@ -148,7 +148,11 @@ struct vnode {
 	int		(**v_op)(void *);	/* :: vnode operations vector */
 	struct buflists	v_cleanblkhd;		/* x: clean blocklist head */
 	struct buflists	v_dirtyblkhd;		/* x: dirty blocklist head */
+#ifndef LOCKDOC
 	union {
+#else
+	struct {
+#endif
 		struct mount	*vu_mountedhere;/* v: ptr to vfs (VDIR) */
 		struct socket	*vu_socket;	/* v: unix ipc (VSOCK) */
 		struct specnode	*vu_specnode;	/* v: device (VCHR, VBLK) */
