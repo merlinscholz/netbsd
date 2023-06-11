@@ -169,7 +169,11 @@ struct vnode {
 	kmutex_t	*v_interlock;		/* -   vnode interlock */
 	struct mount	*v_mount;		/* v   ptr to vfs we are in */
 	int		(**v_op)(void *);	/* :   vnode operations vector */
+#ifndef LOCKDOC
 	union {
+#else
+	struct {
+#endif		
 		struct mount	*vu_mountedhere;/* v   ptr to vfs (VDIR) */
 		struct socket	*vu_socket;	/* v   unix ipc (VSOCK) */
 		struct specnode	*vu_specnode;	/* v   device (VCHR, VBLK) */
