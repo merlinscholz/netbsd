@@ -784,25 +784,6 @@ rw_lock_held(krwlock_t *rw)
 	return (rw->rw_owner & RW_THREAD) != 0;
 }
 
-#ifdef LOCKDOC
-/*
- * Helper function to get a lock type (backported from NetBSD 10.0-STABLE)
- * the #ifdef is here just in case.
- */
- 
- /*
- * rw_lock_op:
- *
- *  For a rwlock that is known to be held by the caller, return
- *  RW_READER or RW_WRITER to describe the hold type.
- */
-krw_t
-rw_lock_op(krwlock_t *rw)
-{
-    return (rw->rw_owner & RW_WRITE_LOCKED) != 0 ? RW_WRITER : RW_READER;
-}
-#endif
-
 /*
  * rw_lock_op:
  *
