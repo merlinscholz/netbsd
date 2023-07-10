@@ -1013,9 +1013,6 @@ out:
 	}
 	membar_acquire();
 
-	// LOCKDOC TEST CODE
-	KASSERT(VSTATE_GET(vp) == VS_RECLAIMED);
-
 	if (VSTATE_GET(vp) == VS_RECLAIMED && vp->v_holdcnt == 0) {
 		/*
 		 * It's clean so destroy it.  It isn't referenced
