@@ -22,6 +22,10 @@ include 	"arch/i386/conf/std.i386"
 
 options 	INCLUDE_CONFIG_FILE	# embed config file in kernel binary
 
+# Re-enable COMPAT_LINUX for easier testing
+options COMPAT_LINUX
+options EXEC_ELF32
+
 #ident		"GENERIC-$Revision: 1.1247 $"
 
 maxusers	64		# estimated number of users
