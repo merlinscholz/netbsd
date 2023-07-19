@@ -97,6 +97,10 @@ __KERNEL_RCSID(0, "$NetBSD: vfs_mount.c,v 1.102 2023/02/24 11:02:27 riastradh Ex
 
 #include <uvm/uvm_swap.h>
 
+#ifdef LOCKDOC
+#include <sys/lockdoc.h>
+#endif
+
 enum mountlist_type {
 	ME_MOUNT,
 	ME_MARKER
@@ -163,6 +167,13 @@ vfs_mountalloc(struct vfsops *vfsops, vnode_t *vp)
 
 	error = fstrans_mount(mp);
 	KASSERT(error == 0);
+
+#ifdef LOCKDOC
+	lockdoc_log_memory(1, "mount", mp, sizeof(*mp));
+	lockdoc_log_memory(1, "kmutex_t", mp->mnt_renamelock, sizeof(*mp->mnt_renamelock));
+	lockdoc_log_memory(1, "kmutex_t", mp->mnt_vnodelock, sizeof(*mp->mnt_vnodelock));
+	lockdoc_log_memory(1, "kmutex_t", mp->mnt_updating, sizeof(*mp->mnt_updating));
+#endif
 
 	mutex_enter(&mountgen_lock);
 	mp->mnt_gen = mountgen++;
@@ -313,6 +324,14 @@ vfs_rele(struct mount *mp)
 	 * free the data structures.
 	 */
 	KASSERT(mp->mnt_refcnt == 0);
+
+#ifdef LOCKDOC
+	lockdoc_log_memory(0, "mount", mp, sizeof(*mp));
+	lockdoc_log_memory(0, "kmutex_t", mp->mnt_renamelock, sizeof(*mp->mnt_renamelock));
+	lockdoc_log_memory(0, "kmutex_t", mp->mnt_vnodelock, sizeof(*mp->mnt_vnodelock));
+	lockdoc_log_memory(0, "kmutex_t", mp->mnt_updating, sizeof(*mp->mnt_updating));
+#endif
+
 	specificdata_fini(mount_specificdata_domain, &mp->mnt_specdataref);
 	mutex_obj_free(mp->mnt_updating);
 	mutex_obj_free(mp->mnt_renamelock);

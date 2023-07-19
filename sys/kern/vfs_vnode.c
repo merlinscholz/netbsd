@@ -463,6 +463,7 @@ vnalloc_marker(struct mount *mp)
 #ifdef LOCKDOC
 	lockdoc_log_memory(1, "vnode_impl", vip, sizeof(*vip));
 	lockdoc_log_memory(1, "kmutex_t", vp->v_interlock, sizeof(*(vp->v_interlock)));
+	lockdoc_log_memory(1, "kmutex_t", vp->v_uobj.vmobjlock, sizeof(*(vp->v_uobj.vmobjlock)));
 #endif
 
 	return vp;
@@ -482,6 +483,7 @@ vnfree_marker(vnode_t *vp)
 #ifdef LOCKDOC
 	lockdoc_log_memory(0, "vnode_impl", vip, sizeof(*vip));
 	lockdoc_log_memory(0, "kmutex_t", vp->v_interlock, sizeof(*(vp->v_interlock)));
+	lockdoc_log_memory(0, "kmutex_t", vp->v_uobj.vmobjlock, sizeof(*(vp->v_uobj.vmobjlock)));
 #endif
 
 	mutex_obj_free(vp->v_interlock);
@@ -1413,6 +1415,7 @@ vcache_alloc(void)
 #ifdef LOCKDOC
 	lockdoc_log_memory(1, "vnode_impl", vip, sizeof(*vip));
 	lockdoc_log_memory(1, "kmutex_t", vp->v_interlock, sizeof(*(vp->v_interlock)));
+	lockdoc_log_memory(1, "kmutex_t", vp->v_uobj.vmobjlock, sizeof(*(vp->v_uobj.vmobjlock)));
 #endif
 
 	return vip;
@@ -1470,6 +1473,7 @@ vcache_free(vnode_impl_t *vip)
 #ifdef LOCKDOC
 	lockdoc_log_memory(0, "vnode_impl", vip, sizeof(*vip));
 	lockdoc_log_memory(0, "kmutex_t", vp->v_interlock, sizeof(*(vp->v_interlock)));
+	lockdoc_log_memory(0, "kmutex_t", vp->v_uobj.vmobjlock, sizeof(*(vp->v_uobj.vmobjlock)));
 #endif
 
 	mutex_obj_free(vp->v_interlock);
