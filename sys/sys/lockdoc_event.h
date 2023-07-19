@@ -3,7 +3,7 @@
 
 #ifdef LOCKDOC
 
-#define LOG_CHAR_BUFFER_LEN 100
+#define LOCKDOC_LOG_CHAR_BUFFER_LEN 100
 #define PSEUDOLOCK_ADDR_RCU		0x42
 #define PSEUDOLOCK_ADDR_PREEMPT	0x43
 #define PSEUDOLOCK_ADDR_SOFTIRQ	0x45
@@ -17,9 +17,6 @@
 #define PSEUDOLOCK_VAR_HARDIRQ	PSEUDOLOCK_VAR
 #define PSEUDOLOCK_VAR_SOFTIRQ	PSEUDOLOCK_VAR
 #define PSEUDOLOCK_VAR_PREEMPT	PSEUDOLOCK_VAR
-
-// Lock flags
-#define LOCK_FLAGS_RECURSIVE	0x1
 
 /*
  * When altered, this file
@@ -60,11 +57,11 @@ struct log_action {
 	uint32_t lock_op;
 	uint32_t ptr;
 	uint32_t size;
-	char type[LOG_CHAR_BUFFER_LEN]; // allocated data_type or lock type
-	char lock_member[LOG_CHAR_BUFFER_LEN];
-	char file[LOG_CHAR_BUFFER_LEN];
+	char type[LOCKDOC_LOG_CHAR_BUFFER_LEN]; // allocated data_type or lock type
+	char lock_member[LOCKDOC_LOG_CHAR_BUFFER_LEN];
+	char file[LOCKDOC_LOG_CHAR_BUFFER_LEN];
 	int32_t line;
-	char function[LOG_CHAR_BUFFER_LEN]; 
+	char function[LOCKDOC_LOG_CHAR_BUFFER_LEN]; 
 	int32_t preempt_count;
 	int32_t irq_sync;
 	int32_t flags;

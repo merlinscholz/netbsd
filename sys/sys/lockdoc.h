@@ -10,11 +10,10 @@
 #include <sys/mutex.h>
 #include <sys/rwlock.h>
 
-#define DELIMITER	"#"
-#define DELIMITER_CHAR	'#'
-#define PING_CHAR	'p'
-#define MK_STRING(x)	#x
-#define IO_PORT_LOG	(0x00e9)
+#define LOCKDOC_VERSION "ms-0.2"
+#define LOCKDOC_DELIMITER	"#"
+#define LOCKDOC_DELIMITER_CHAR	'#'
+#define LOCKDOC_PING() lockdoc_outb('p',0x00e9);
 
 #ifdef LOCKDOC
 
@@ -26,7 +25,6 @@ extern struct log_action la_buffer;
 /*
  * Prototypes
  */
-
 void    lockdoc_send_current_task_addr(void);
 void    lockdoc_send_lwp_flag_offset(void);
 void    lockdoc_send_pid_offset(void);
@@ -110,11 +108,11 @@ static inline void __lockdoc_log_memory(int alloc, const char *datatype, const v
 	la_buffer.ctx = lockdoc_get_ctx();
 
     // file
-    strncpy(la_buffer.file, file, LOG_CHAR_BUFFER_LEN);
-	la_buffer.file[LOG_CHAR_BUFFER_LEN - 1] = '\0';
+    strncpy(la_buffer.file, file, LOCKDOC_LOG_CHAR_BUFFER_LEN);
+	la_buffer.file[LOCKDOC_LOG_CHAR_BUFFER_LEN - 1] = '\0';
     la_buffer.line = line;
-	strncpy(la_buffer.function, func, LOG_CHAR_BUFFER_LEN);
-	la_buffer.function[LOG_CHAR_BUFFER_LEN - 1] = '\0';
+	strncpy(la_buffer.function, func, LOCKDOC_LOG_CHAR_BUFFER_LEN);
+	la_buffer.function[LOCKDOC_LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
 	/*
 	 * One could use a more safe string function, e.g., strlcpy. 
@@ -123,10 +121,10 @@ static inline void __lockdoc_log_memory(int alloc, const char *datatype, const v
 	 * To ensure any string buffer contains a valid string, we
 	 * always write a NULL byte at its end.
 	 */
-	strncpy(la_buffer.type,datatype,LOG_CHAR_BUFFER_LEN);
-	la_buffer.type[LOG_CHAR_BUFFER_LEN - 1] = '\0';
+	strncpy(la_buffer.type,datatype,LOCKDOC_LOG_CHAR_BUFFER_LEN);
+	la_buffer.type[LOCKDOC_LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
-	lockdoc_outb(PING_CHAR,IO_PORT_LOG);
+	LOCKDOC_PING();
 
 	x86_write_flags(eflags);
 }
@@ -155,29 +153,29 @@ static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const
     // size only relevant for memory access
 
     // type
-    strncpy(la_buffer.type, lock_type, LOG_CHAR_BUFFER_LEN);
-	la_buffer.type[LOG_CHAR_BUFFER_LEN - 1] = '\0';
+    strncpy(la_buffer.type, lock_type, LOCKDOC_LOG_CHAR_BUFFER_LEN);
+	la_buffer.type[LOCKDOC_LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
     // TODO lock_member
-    strncpy(la_buffer.lock_member, "dummy", LOG_CHAR_BUFFER_LEN);
-	la_buffer.lock_member[LOG_CHAR_BUFFER_LEN - 1] = '\0';
+    strncpy(la_buffer.lock_member, "dummy", LOCKDOC_LOG_CHAR_BUFFER_LEN);
+	la_buffer.lock_member[LOCKDOC_LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
     // file
-    strncpy(la_buffer.file, file, LOG_CHAR_BUFFER_LEN);
-	la_buffer.file[LOG_CHAR_BUFFER_LEN - 1] = '\0';
+    strncpy(la_buffer.file, file, LOCKDOC_LOG_CHAR_BUFFER_LEN);
+	la_buffer.file[LOCKDOC_LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
     // line
     la_buffer.line = line;
 
     // function
-	strncpy(la_buffer.function, func, LOG_CHAR_BUFFER_LEN);
-	la_buffer.function[LOG_CHAR_BUFFER_LEN - 1] = '\0';
+	strncpy(la_buffer.function, func, LOCKDOC_LOG_CHAR_BUFFER_LEN);
+	la_buffer.function[LOCKDOC_LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
     // TODO preempt_count
     // irq_sync
     la_buffer.irq_sync = irq_sync;
 
-    lockdoc_outb(PING_CHAR,IO_PORT_LOG);
+	LOCKDOC_PING();
 
     x86_write_flags(eflags);
 }

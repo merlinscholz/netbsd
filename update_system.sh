@@ -1,7 +1,7 @@
 #!/bin/sh
 set -xeu
 
-NETBSD_IP=192.168.122.211
+NETBSD_IP=192.168.122.68
 
 ./build.sh -U -O ./obj -j$(nproc) -m i386 -a i386 -u kernel=GENERIC
 ./build.sh -U -O ./obj -j$(nproc) -m i386 -a i386 -u kernel=LOCKDOC
