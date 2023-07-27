@@ -183,7 +183,7 @@ __KERNEL_RCSID(0, "$NetBSD: vfs_vnode.c,v 1.149 2023/02/24 11:02:27 riastradh Ex
 #include <uvm/uvm_readahead.h>
 #include <uvm/uvm_stat.h>
 
-#ifdef LOCKDOC
+#ifdef LOCKDOC_VFS
 /*
  * LOCKDOC TODO: Right now, only completely free'd vnodes are being logged
  * as free'd by FAIL*. Evaluate, whether recycled vnodes need to be handled
@@ -460,10 +460,10 @@ vnalloc_marker(struct mount *mp)
 	vp->v_klist = &vip->vi_klist;
 	vip->vi_state = VS_MARKER;
 
-#ifdef LOCKDOC
+#ifdef LOCKDOC_VFS
 	lockdoc_log_memory(1, "vnode_impl", vip, sizeof(*vip));
 	lockdoc_log_memory(1, "kmutex_t", vp->v_interlock, sizeof(*(vp->v_interlock)));
-	lockdoc_log_memory(1, "kmutex_t", vp->v_uobj.vmobjlock, sizeof(*(vp->v_uobj.vmobjlock)));
+	lockdoc_log_memory(1, "krwlock_t", vp->v_uobj.vmobjlock, sizeof(*(vp->v_uobj.vmobjlock)));
 #endif
 
 	return vp;
@@ -480,10 +480,10 @@ vnfree_marker(vnode_t *vp)
 	vip = VNODE_TO_VIMPL(vp);
 	KASSERT(vip->vi_state == VS_MARKER);
 
-#ifdef LOCKDOC
+#ifdef LOCKDOC_VFS
 	lockdoc_log_memory(0, "vnode_impl", vip, sizeof(*vip));
 	lockdoc_log_memory(0, "kmutex_t", vp->v_interlock, sizeof(*(vp->v_interlock)));
-	lockdoc_log_memory(0, "kmutex_t", vp->v_uobj.vmobjlock, sizeof(*(vp->v_uobj.vmobjlock)));
+	lockdoc_log_memory(0, "krwlock_t", vp->v_uobj.vmobjlock, sizeof(*(vp->v_uobj.vmobjlock)));
 #endif
 
 	mutex_obj_free(vp->v_interlock);
@@ -1412,10 +1412,10 @@ vcache_alloc(void)
 
 	lru_requeue(vp, &lru_list[LRU_FREE]);
 
-#ifdef LOCKDOC
+#ifdef LOCKDOC_VFS
 	lockdoc_log_memory(1, "vnode_impl", vip, sizeof(*vip));
 	lockdoc_log_memory(1, "kmutex_t", vp->v_interlock, sizeof(*(vp->v_interlock)));
-	lockdoc_log_memory(1, "kmutex_t", vp->v_uobj.vmobjlock, sizeof(*(vp->v_uobj.vmobjlock)));
+	lockdoc_log_memory(1, "krwlock_t", vp->v_uobj.vmobjlock, sizeof(*(vp->v_uobj.vmobjlock)));
 #endif
 
 	return vip;
@@ -1470,10 +1470,10 @@ vcache_free(vnode_impl_t *vip)
 	if (vp->v_type == VBLK || vp->v_type == VCHR)
 		spec_node_destroy(vp);
 
-#ifdef LOCKDOC
+#ifdef LOCKDOC_VFS
 	lockdoc_log_memory(0, "vnode_impl", vip, sizeof(*vip));
 	lockdoc_log_memory(0, "kmutex_t", vp->v_interlock, sizeof(*(vp->v_interlock)));
-	lockdoc_log_memory(0, "kmutex_t", vp->v_uobj.vmobjlock, sizeof(*(vp->v_uobj.vmobjlock)));
+	lockdoc_log_memory(0, "krwlock_t", vp->v_uobj.vmobjlock, sizeof(*(vp->v_uobj.vmobjlock)));
 #endif
 
 	mutex_obj_free(vp->v_interlock);

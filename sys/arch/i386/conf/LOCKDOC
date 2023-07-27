@@ -114,6 +114,7 @@ options 	BUFQ_PRIOCSCAN
 options 	DEBUG		# expensive debugging checks/support
 #options 	LOCKDEBUG	# expensive locking checks/support
 options		LOCKDOC		# LOCKDOC test support
+options		LOCKDOC_VFS	# LOCKDOC VFS intrumentation
 #options 	DDB		# in-kernel debugger
 #options 	DDB_ONPANIC=1	# see also sysctl(7): `ddb.onpanic'
 #options 	DDB_HISTORY_SIZE=512	# enable history editing in DDB
