@@ -690,6 +690,9 @@ ld_discard(device_t dev, off_t pos, off_t len)
 	bp->b_bcount = len;
 	bp->b_flags = B_WRITE;
 	bp->b_cflags = BC_BUSY;
+#ifdef LOCKDOC_VFS
+	lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 
 	error = (*sc->sc_discard)(sc, bp);
 	if (error == 0)

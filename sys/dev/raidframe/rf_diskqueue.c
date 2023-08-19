@@ -392,6 +392,9 @@ rf_CreateDiskQueueData(RF_IoType_t typ, RF_SectorNum_t ssect,
 	buf_init(p->bp);
 		
 	SET(p->bp->b_cflags, BC_BUSY);	/* mark buffer busy */
+#ifdef LOCKDOC_VFS
+	lockdoc_log_lock(P_WRITE, &(p->bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 	if (mbp) {
 		SET(p->bp->b_flags, mbp->b_flags & rf_b_pass);
 		p->bp->b_proc = mbp->b_proc;

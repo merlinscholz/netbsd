@@ -2124,6 +2124,9 @@ lfs_writeseg(struct lfs *fs, struct segment *sp)
 		bp = *bpp;
 		if (bp->b_iodone != NULL) {	 /* UBC or malloced buffer */
 			bp->b_cflags |= BC_BUSY;
+#ifdef LOCKDOC_VFS
+			lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 			continue;
 		}
 
@@ -2136,6 +2139,9 @@ lfs_writeseg(struct lfs *fs, struct segment *sp)
 			cv_wait(&bp->b_busy, &bufcache_lock);
 		}
 		bp->b_cflags |= BC_BUSY;
+#ifdef LOCKDOC_VFS
+		lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 		mutex_exit(&bufcache_lock);
 		unbusybp = NULL;
 
@@ -2201,6 +2207,9 @@ lfs_writeseg(struct lfs *fs, struct segment *sp)
 		mutex_enter(&bufcache_lock);
 		if (unbusybp != NULL) {
 			unbusybp->b_cflags &= ~BC_BUSY;
+#ifdef LOCKDOC_VFS
+			lockdoc_log_lock(V_WRITE, &(unbusybp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 			if (unbusybp->b_cflags & BC_WANTED)
 				cv_broadcast(&bp->b_busy);
 		}
@@ -2280,6 +2289,9 @@ lfs_writeseg(struct lfs *fs, struct segment *sp)
 
 		cbp->b_flags |= B_ASYNC;
 		cbp->b_cflags |= BC_BUSY;
+#ifdef LOCKDOC_VFS
+		lockdoc_log_lock(P_WRITE, &(cbp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 		cbp->b_bcount = 0;
 
 		KASSERTMSG((bpp - sp->bpp <=
@@ -2431,6 +2443,9 @@ lfs_writesuper(struct lfs *fs, daddr_t daddr)
 	    LFS_SBPAD - sizeof(struct dlfs));
 
 	bp->b_cflags |= BC_BUSY;
+#ifdef LOCKDOC_VFS
+	lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 	bp->b_flags = (bp->b_flags & ~B_READ) | B_ASYNC;
 	bp->b_oflags &= ~(BO_DONE | BO_DELWRI);
 	bp->b_error = 0;

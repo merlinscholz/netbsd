@@ -78,6 +78,14 @@
 #include <sys/workqueue.h>
 #endif /* defined(_KERNEL) */
 
+#ifdef LOCKDOC_VFS
+/*
+ * Include LOCKDOC here so that every file that uses buf_t has access
+ * to the lockdoc_log_lock functions
+ */
+#include <sys/lockdoc.h>
+#endif
+
 struct buf;
 struct mount;
 struct vnode;
@@ -112,13 +120,22 @@ __CTASSERT(sizeof(struct work) <= sizeof(TAILQ_ENTRY(buf)));
 #endif
 
 struct buf {
+#ifndef LOCKDOC_VFS
 	union {
-		TAILQ_ENTRY(buf) u_actq;
-		rb_node_t u_rbnode;
+#else
+	struct {
+#endif
 #if defined(_KERNEL)
 		/* u_work is smaller than u_actq */
+
+		/* LOCKDOC: This had to be moved in front of u_actq and
+		 * u_rbnode becuase the vfs_bio subsys does
+		 * some *interesting* pointer stuff
+		 */
 		struct work u_work;
 #endif
+		TAILQ_ENTRY(buf) u_actq;
+		rb_node_t u_rbnode;
 	} b_u;					/* b: device driver queue */
 #define	b_actq	b_u.u_actq
 #define	b_work	b_u.u_work

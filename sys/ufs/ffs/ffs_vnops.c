@@ -379,6 +379,9 @@ ffs_fsync(void *v)
 			    (bp->b_oflags & BO_DELWRI) == 0)
 				continue;
 			bp->b_cflags |= BC_BUSY | BC_VFLUSH;
+#ifdef LOCKDOC_VFS
+			lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 			mutex_exit(&bufcache_lock);
 			bawrite(bp);
 			mutex_enter(&bufcache_lock);

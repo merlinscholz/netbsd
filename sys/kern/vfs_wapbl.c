@@ -919,6 +919,9 @@ wapbl_doio(void *data, size_t len, struct vnode *devvp, daddr_t pbn, int flags)
 	bp = getiobuf(devvp, true);
 	bp->b_flags = flags;
 	bp->b_cflags |= BC_BUSY;	/* mandatory, asserted by biowait() */
+#ifdef LOCKDOC_VFS
+	lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 	bp->b_dev = devvp->v_rdev;
 	bp->b_data = data;
 	bp->b_bufsize = bp->b_resid = bp->b_bcount = len;
@@ -994,6 +997,9 @@ wapbl_buffered_write_async(struct wapbl *wl, struct buf *bp)
 
 	bp->b_flags |= B_WRITE;
 	bp->b_cflags |= BC_BUSY;	/* mandatory, asserted by biowait() */
+#ifdef LOCKDOC_VFS
+	lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 	bp->b_oflags = 0;
 	bp->b_bcount = bp->b_resid;
 	BIO_SETPRIO(bp, BPRIO_TIMECRITICAL);

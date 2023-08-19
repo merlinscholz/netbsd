@@ -253,6 +253,9 @@ restart:
 			printf("buffer still DELWRI\n");
 #endif
 			bp->b_cflags |= BC_BUSY | BC_VFLUSH;
+#ifdef LOCKDOC_VFS
+			lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 			mutex_exit(&bufcache_lock);
 			VOP_BWRITE(bp->b_vp, bp);
 			mutex_enter(&bufcache_lock);
@@ -355,6 +358,9 @@ loop:
 		if ((bp->b_oflags & BO_DELWRI) == 0)
 			panic("vflushbuf: not dirty, bp %p", bp);
 		bp->b_cflags |= BC_BUSY | BC_VFLUSH;
+#ifdef LOCKDOC_VFS
+		lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 		mutex_exit(&bufcache_lock);
 		/*
 		 * Wait for I/O associated with indirect blocks to complete,

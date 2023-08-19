@@ -10,7 +10,7 @@
 #include <sys/mutex.h>
 #include <sys/rwlock.h>
 
-#define LOCKDOC_VERSION "ms-vfs-0.2"
+#define LOCKDOC_VERSION "ms-vfs-0.3"
 #define LOCKDOC_DELIMITER	"#"
 #define LOCKDOC_DELIMITER_CHAR	'#'
 #define LOCKDOC_PING() lockdoc_outb('p',0x00e9);

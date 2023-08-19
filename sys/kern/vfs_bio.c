@@ -154,6 +154,10 @@ __KERNEL_RCSID(0, "$NetBSD: vfs_bio.c,v 1.303 2022/03/30 14:54:29 riastradh Exp 
 
 #include <miscfs/specfs/specdev.h>
 
+#ifdef LOCKDOC_VFS
+#include <sys/lockdoc.h>
+#endif
+
 SDT_PROVIDER_DEFINE(io);
 
 SDT_PROBE_DEFINE4(io, kernel, , bbusy__start,
@@ -468,6 +472,12 @@ bufinit(void)
 
 	mutex_init(&bufcache_lock, MUTEX_DEFAULT, IPL_NONE);
 	mutex_init(&buffer_lock, MUTEX_DEFAULT, IPL_NONE);
+
+#ifdef LOCKDOC_VFS
+	lockdoc_log_memory(1, "kmutex_t", &bufcache_lock, sizeof(kmutex_t));
+	lockdoc_log_memory(1, "kmutex_t", &buffer_lock, sizeof(kmutex_t));
+#endif
+
 	cv_init(&needbuffer_cv, "needbuf");
 
 	if (bufmem_valimit != 0) {
@@ -1136,6 +1146,9 @@ brelsel(buf_t *bp, int set)
 already_queued:
 	/* Unlock the buffer. */
 	CLR(bp->b_cflags, BC_AGE|BC_BUSY|BC_NOCACHE);
+#ifdef LOCKDOC_VFS
+	lockdoc_log_lock(V_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 	CLR(bp->b_flags, B_ASYNC);
 
 	/*
@@ -1399,6 +1412,9 @@ getnewbuf(int slpflag, int slptimeo, int from_bufq)
 			memset((char *)bp, 0, sizeof(*bp));
 			buf_init(bp);
 			SET(bp->b_cflags, BC_BUSY);	/* mark buffer busy */
+#ifdef LOCKDOC_VFS
+			lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 			mutex_enter(&bufcache_lock);
 #if defined(DIAGNOSTIC)
 			bp->b_freelistindex = -1;
@@ -1430,6 +1446,9 @@ getnewbuf(int slpflag, int slptimeo, int from_bufq)
 
 		/* Buffer is no longer on free lists. */
 		SET(bp->b_cflags, BC_BUSY);
+#ifdef LOCKDOC_VFS
+		lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 
 		/* Wake anyone trying to lock the old identity. */
 		cv_broadcast(&bp->b_busy);
@@ -1494,6 +1513,9 @@ getnewbuf(int slpflag, int slptimeo, int from_bufq)
 
 	/* clear out various other fields */
 	bp->b_cflags = BC_BUSY;
+#ifdef LOCKDOC_VFS
+	lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 	bp->b_oflags = 0;
 	bp->b_flags = 0;
 	bp->b_dev = NODEV;
@@ -2106,6 +2128,9 @@ nestiobuf_setup(buf_t *mbp, buf_t *bp, int offset, size_t size)
 	bp->b_dev = mbp->b_dev;
 	bp->b_objlock = mbp->b_objlock;
 	bp->b_cflags = BC_BUSY;
+#ifdef LOCKDOC_VFS
+	lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 	bp->b_flags = B_ASYNC | b_pass;
 	bp->b_iodone = nestiobuf_iodone;
 	bp->b_data = (char *)mbp->b_data + offset;
@@ -2164,6 +2189,10 @@ buf_init(buf_t *bp)
 	bp->b_dev = NODEV;
 	bp->b_vnbufs.le_next = NOLIST;
 	BIO_SETPRIO(bp, BPRIO_DEFAULT);
+
+#ifdef LOCKDOC_VFS
+	lockdoc_log_memory(1, "buf", bp, sizeof(buf_t));
+#endif
 }
 
 void
@@ -2172,6 +2201,12 @@ buf_destroy(buf_t *bp)
 
 	cv_destroy(&bp->b_done);
 	cv_destroy(&bp->b_busy);
+
+#ifdef LOCKDOC_VFS
+	if ((bp->b_cflags & BC_BUSY) != 0)
+		lockdoc_log_lock(V_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	lockdoc_log_memory(0, "buf", bp, sizeof(buf_t));
+#endif
 }
 
 int
@@ -2208,6 +2243,9 @@ bbusy(buf_t *bp, bool intr, int timo, kmutex_t *interlock)
 			error = EPASSTHROUGH;
 	} else {
 		bp->b_cflags |= BC_BUSY;
+#ifdef LOCKDOC_VFS
+		lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 		error = 0;
 	}
 

@@ -2195,6 +2195,9 @@ rwfsblk(struct vnode *vp, int flags, void *data, daddr_t lbn)
 	nbp->b_proc = NULL;
 	nbp->b_dev = ip->i_devvp->v_rdev;
 	SET(nbp->b_cflags, BC_BUSY);	/* mark buffer busy */
+#ifdef LOCKDOC_VFS
+	lockdoc_log_lock(P_WRITE, &(nbp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 
 	bdev_strategy(nbp);
 

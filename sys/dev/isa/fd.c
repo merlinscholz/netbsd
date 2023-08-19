@@ -1612,6 +1612,9 @@ fdformat(dev_t dev, struct ne7_fd_formb *finfo, struct lwp *l)
 		return ENOBUFS;
 
 	bp->b_cflags = BC_BUSY;
+#ifdef LOCKDOC_VFS
+	lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+#endif
 	bp->b_flags = B_PHYS | B_FORMAT;
 	bp->b_proc = l->l_proc;
 	bp->b_dev = dev;
