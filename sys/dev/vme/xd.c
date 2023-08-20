@@ -346,7 +346,7 @@ xddummystrat(struct buf *bp)
 	bp->b_oflags |= BO_DONE;
 	bp->b_cflags &= ~BC_BUSY;
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(V_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_unbusy(&(bp->b_cflags));
 #endif
 }
 

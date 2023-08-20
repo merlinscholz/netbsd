@@ -437,7 +437,7 @@ lfs_bwrite_ext(struct buf *bp, int flags)
 		if (LFS_IS_MALLOC_BUF(bp)){
 			bp->b_cflags &= ~BC_BUSY;
 #ifdef LOCKDOC_VFS
-			lockdoc_log_lock(V_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+			b_cflags_unbusy(&(bp->b_cflags));
 #endif
 		} else
 			brelsel(bp, 0);
@@ -487,7 +487,7 @@ lfs_bwrite_ext(struct buf *bp, int flags)
 	if (bp->b_iodone != NULL) {
 		bp->b_cflags &= ~BC_BUSY;
 #ifdef LOCKDOC_VFS
-		lockdoc_log_lock(V_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+		b_cflags_unbusy(&(bp->b_cflags));
 #endif
 	} else
 		brelsel(bp, 0);
@@ -743,7 +743,7 @@ lfs_newbuf(struct lfs *fs, struct vnode *vp, daddr_t daddr, size_t size, int typ
 	bp->b_iodone = lfs_free_aiodone;
 	bp->b_cflags |= BC_BUSY | BC_NOCACHE;
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_busy(&(bp->b_cflags));
 #endif
 	bp->b_private = fs;
 

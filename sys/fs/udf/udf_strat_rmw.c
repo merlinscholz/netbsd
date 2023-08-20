@@ -1124,7 +1124,7 @@ udf_issue_eccline(struct udf_eccline *eccline, int queued_on)
 		buf->b_flags    = B_READ | B_ASYNC;
 		SET(buf->b_cflags, BC_BUSY);	/* mark buffer busy */
 #ifdef LOCKDOC_VFS
-		lockdoc_log_lock(P_WRITE, &(buf->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+		b_cflags_busy(&(buf->b_cflags));
 #endif
 		buf->b_oflags   = 0;
 		buf->b_iodone   = udf_shedule_read_callback;
@@ -1175,7 +1175,7 @@ udf_issue_eccline(struct udf_eccline *eccline, int queued_on)
 		buf->b_flags    = B_WRITE | B_ASYNC;
 		SET(buf->b_cflags, BC_BUSY);	/* mark buffer busy */
 #ifdef LOCKDOC_VFS
-		lockdoc_log_lock(P_WRITE, &(buf->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+		b_cflags_busy(&(buf->b_cflags));
 #endif
 		buf->b_oflags   = 0;
 		buf->b_iodone   = udf_shedule_write_callback;

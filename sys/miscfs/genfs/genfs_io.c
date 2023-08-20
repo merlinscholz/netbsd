@@ -612,7 +612,7 @@ genfs_getpages_read(struct vnode *vp, struct vm_page **pgs, int npages,
 	mbp->b_resid = mbp->b_bcount = bytes;
 	mbp->b_cflags |= BC_BUSY;
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(P_WRITE, &(mbp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_busy(&(mbp->b_cflags));
 #endif
 	if (async) {
 		mbp->b_flags = B_READ | B_ASYNC;
@@ -1484,7 +1484,7 @@ genfs_do_io(struct vnode *vp, off_t off, vaddr_t kva, size_t len, int flags,
 	mbp->b_resid = mbp->b_bcount = bytes;
 	mbp->b_cflags |= BC_BUSY | BC_AGE;
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(P_WRITE, &(mbp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_busy(&(mbp->b_cflags));
 #endif
 	if (async) {
 		mbp->b_flags = brw | B_ASYNC;
@@ -1719,7 +1719,7 @@ genfs_compat_gop_write(struct vnode *vp, struct vm_page **pgs, int npages,
 	bp = getiobuf(vp, true);
 	bp->b_cflags |= BC_BUSY | BC_AGE;
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_busy(&(bp->b_cflags));
 #endif
 	bp->b_lblkno = offset >> vp->v_mount->mnt_fs_bshift;
 	bp->b_data = (char *)kva;

@@ -314,7 +314,7 @@ ata_raid_config_block_rw(struct vnode *vp, daddr_t blkno, void *tbuf,
 	bp->b_data = tbuf;
 	SET(bp->b_cflags, BC_BUSY);	/* mark buffer busy */
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_busy(&(bp->b_cflags));
 #endif
 	VOP_STRATEGY(vp, bp);
 	error = biowait(bp);

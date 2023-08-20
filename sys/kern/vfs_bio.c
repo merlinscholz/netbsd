@@ -1147,7 +1147,7 @@ already_queued:
 	/* Unlock the buffer. */
 	CLR(bp->b_cflags, BC_AGE|BC_BUSY|BC_NOCACHE);
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(V_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_unbusy(&(bp->b_cflags));
 #endif
 	CLR(bp->b_flags, B_ASYNC);
 
@@ -1413,7 +1413,7 @@ getnewbuf(int slpflag, int slptimeo, int from_bufq)
 			buf_init(bp);
 			SET(bp->b_cflags, BC_BUSY);	/* mark buffer busy */
 #ifdef LOCKDOC_VFS
-			lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+			b_cflags_busy(&(bp->b_cflags));
 #endif
 			mutex_enter(&bufcache_lock);
 #if defined(DIAGNOSTIC)
@@ -1447,7 +1447,7 @@ getnewbuf(int slpflag, int slptimeo, int from_bufq)
 		/* Buffer is no longer on free lists. */
 		SET(bp->b_cflags, BC_BUSY);
 #ifdef LOCKDOC_VFS
-		lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+		b_cflags_busy(&(bp->b_cflags));
 #endif
 
 		/* Wake anyone trying to lock the old identity. */
@@ -1514,7 +1514,7 @@ getnewbuf(int slpflag, int slptimeo, int from_bufq)
 	/* clear out various other fields */
 	bp->b_cflags = BC_BUSY;
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_busy(&(bp->b_cflags));
 #endif
 	bp->b_oflags = 0;
 	bp->b_flags = 0;
@@ -2129,7 +2129,7 @@ nestiobuf_setup(buf_t *mbp, buf_t *bp, int offset, size_t size)
 	bp->b_objlock = mbp->b_objlock;
 	bp->b_cflags = BC_BUSY;
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_busy(&(bp->b_cflags));
 #endif
 	bp->b_flags = B_ASYNC | b_pass;
 	bp->b_iodone = nestiobuf_iodone;
@@ -2204,7 +2204,7 @@ buf_destroy(buf_t *bp)
 
 #ifdef LOCKDOC_VFS
 	if ((bp->b_cflags & BC_BUSY) != 0)
-		lockdoc_log_lock(V_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+		b_cflags_unbusy(&(bp->b_cflags));
 	lockdoc_log_memory(0, "buf", bp, sizeof(buf_t));
 #endif
 }
@@ -2244,7 +2244,7 @@ bbusy(buf_t *bp, bool intr, int timo, kmutex_t *interlock)
 	} else {
 		bp->b_cflags |= BC_BUSY;
 #ifdef LOCKDOC_VFS
-		lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+		b_cflags_busy(&(bp->b_cflags));
 #endif
 		error = 0;
 	}

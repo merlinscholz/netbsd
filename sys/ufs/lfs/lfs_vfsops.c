@@ -2128,7 +2128,7 @@ lfs_gop_write(struct vnode *vp, struct vm_page **pgs, int npages,
 	mbp->b_resid = mbp->b_bcount = bytes;
 	mbp->b_cflags |= BC_BUSY|BC_AGE;
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(P_WRITE, &(mbp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_busy(&(mbp->b_cflags));
 #endif
 	mbp->b_iodone = uvm_aio_aiodone;
 

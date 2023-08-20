@@ -10,7 +10,7 @@
 #include <sys/mutex.h>
 #include <sys/rwlock.h>
 
-#define LOCKDOC_VERSION "ms-vfs-0.3"
+#define LOCKDOC_VERSION "ms-vfs-0.4"
 #define LOCKDOC_DELIMITER	"#"
 #define LOCKDOC_DELIMITER_CHAR	'#'
 #define LOCKDOC_PING() lockdoc_outb('p',0x00e9);
@@ -31,17 +31,20 @@ void    lockdoc_send_pid_offset(void);
 void    lockdoc_send_kernel_version(void);
 int32_t lockdoc_get_ctx(void);
 
-void	__mutex_enter(kmutex_t *, const char*, int, const char*);
-void	__mutex_exit(kmutex_t *, const char*, int, const char*);
-void	__mutex_spin_enter(kmutex_t *, const char*, int, const char*);
-void	__mutex_spin_exit(kmutex_t *, const char*, int, const char*);
-int    	__mutex_tryenter(kmutex_t *, const char*, int, const char*);
+void	__mutex_enter(kmutex_t *, const char*, int, const char*, const char*);
+void	__mutex_exit(kmutex_t *, const char*, int, const char*, const char*);
+void	__mutex_spin_enter(kmutex_t *, const char*, int, const char*, const char*);
+void	__mutex_spin_exit(kmutex_t *, const char*, int, const char*, const char*);
+int    	__mutex_tryenter(kmutex_t *, const char*, int, const char*, const char*);
 
-int     __rw_tryupgrade(krwlock_t *, const char*, int, const char*);
-void    __rw_downgrade(krwlock_t *, const char*, int, const char*);
-void	__rw_enter(krwlock_t *, const krw_t, const char*, int, const char*);
-int	    __rw_tryenter(krwlock_t *, const krw_t, const char*, int, const char*);
-void	__rw_exit(krwlock_t *, const char*, int, const char*);
+int     __rw_tryupgrade(krwlock_t *, const char*, int, const char*, const char*);
+void    __rw_downgrade(krwlock_t *, const char*, int, const char*, const char*);
+void	__rw_enter(krwlock_t *, const krw_t, const char*, int, const char*, const char*);
+int	    __rw_tryenter(krwlock_t *, const krw_t, const char*, int, const char*, const char*);
+void	__rw_exit(krwlock_t *, const char*, int, const char*, const char*);
+
+void	__b_cflags_busy(int *, const char*, int, const char*, const char*);
+void	__b_cflags_unbusy(int *, const char*, int, const char*, const char*);
 
 void    __x86_disable_intr(const char*, int, const char*);
 void    __x86_enable_intr(const char*, int, const char*);
@@ -61,17 +64,20 @@ krw_t   rw_lock_op(krwlock_t *rw);
  * Redefine lock/interrupt function as macros instead of normal functions,
  * so that __FILE__ etc. will work properly
  */
-#define mutex_enter(lock) __mutex_enter(lock, __FILE__, __LINE__, __func__)
-#define mutex_exit(lock) __mutex_exit(lock, __FILE__, __LINE__, __func__)
-#define mutex_spin_enter(lock) __mutex_spin_enter(lock, __FILE__, __LINE__, __func__)
-#define mutex_spin_exit(lock) __mutex_spin_exit(lock, __FILE__, __LINE__, __func__)
-#define mutex_tryenter(lock) __mutex_tryenter(lock, __FILE__, __LINE__, __func__)
+#define mutex_enter(lock) __mutex_enter(lock, __FILE__, __LINE__, __func__, (#lock))
+#define mutex_exit(lock) __mutex_exit(lock, __FILE__, __LINE__, __func__, (#lock))
+#define mutex_spin_enter(lock) __mutex_spin_enter(lock, __FILE__, __LINE__, __func__, (#lock))
+#define mutex_spin_exit(lock) __mutex_spin_exit(lock, __FILE__, __LINE__, __func__, (#lock))
+#define mutex_tryenter(lock) __mutex_tryenter(lock, __FILE__, __LINE__, __func__, (#lock))
 
-#define rw_tryupgrade(lock) __rw_tryupgrade(lock, __FILE__, __LINE__, __func__)
-#define rw_downgrade(lock) __rw_downgrade(lock, __FILE__, __LINE__, __func__)
-#define rw_enter(lock, type) __rw_enter(lock, type, __FILE__, __LINE__, __func__)
-#define rw_tryenter(lock, type) __rw_tryenter(lock, type, __FILE__, __LINE__, __func__)
-#define rw_exit(lock) __rw_exit(lock, __FILE__, __LINE__, __func__)
+#define rw_tryupgrade(lock) __rw_tryupgrade(lock, __FILE__, __LINE__, __func__, (#lock))
+#define rw_downgrade(lock) __rw_downgrade(lock, __FILE__, __LINE__, __func__, (#lock))
+#define rw_enter(lock, type) __rw_enter(lock, type, __FILE__, __LINE__, __func__, (#lock))
+#define rw_tryenter(lock, type) __rw_tryenter(lock, type, __FILE__, __LINE__, __func__, (#lock))
+#define rw_exit(lock) __rw_exit(lock, __FILE__, __LINE__, __func__, (#lock))
+
+#define b_cflags_busy(b_cflags) __b_cflags_busy(b_cflags, __FILE__, __LINE__, __func__, (#b_cflags))
+#define b_cflags_unbusy(b_cflags) __b_cflags_unbusy(b_cflags, __FILE__, __LINE__, __func__, (#b_cflags))
 
 #define x86_disable_intr() __x86_disable_intr(__FILE__, __LINE__, __func__)
 #define x86_enable_intr() __x86_enable_intr(__FILE__, __LINE__, __func__)
@@ -129,7 +135,7 @@ static inline void __lockdoc_log_memory(int alloc, const char *datatype, const v
 	x86_write_flags(eflags);
 }
 
-static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const char *file, int line, const char* func, const char* lock_type, int irq_sync) {
+static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const char *file, int line, const char* func, const char* lock_type, int irq_sync, const char* name) {
     u_long eflags;
     eflags = x86_read_flags();
     _x86_disable_intr();
@@ -157,7 +163,7 @@ static inline void lockdoc_log_lock(int lock_op, const volatile void* ptr, const
 	la_buffer.type[LOCKDOC_LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
     // TODO lock_member
-    strncpy(la_buffer.lock_member, "dummy", LOCKDOC_LOG_CHAR_BUFFER_LEN);
+    strncpy(la_buffer.lock_member, name, LOCKDOC_LOG_CHAR_BUFFER_LEN);
 	la_buffer.lock_member[LOCKDOC_LOG_CHAR_BUFFER_LEN - 1] = '\0';
 
     // file

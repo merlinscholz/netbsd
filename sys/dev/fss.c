@@ -1048,7 +1048,7 @@ restart:
 	mbp->b_flags = B_READ;
 	mbp->b_cflags = BC_BUSY;
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(P_WRITE, &(mbp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_busy(&(mbp->b_cflags));
 #endif
 	mbp->b_dev = sc->sc_bdev;
 	while (todo > 0) {
@@ -1297,7 +1297,7 @@ fss_bs_thread(void *arg)
 			nbp->b_dev = sc->sc_bdev;
 			SET(nbp->b_cflags, BC_BUSY);	/* mark buffer busy */
 #ifdef LOCKDOC_VFS
-			lockdoc_log_lock(P_WRITE, &(nbp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+			b_cflags_busy(&(nbp->b_cflags));
 #endif
 			bdev_strategy(nbp);
 

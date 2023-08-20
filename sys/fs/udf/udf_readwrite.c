@@ -299,7 +299,7 @@ udf_read_phys_sectors(struct udf_mount *ump, int what, void *blob,
 	buf->b_flags    = B_READ;
 	buf->b_cflags   = BC_BUSY;	/* needed? */
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(P_WRITE, &(buf->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_busy(&(buf->b_cflags));
 #endif
 	buf->b_iodone   = NULL;
 	buf->b_data     = blob;
@@ -499,7 +499,7 @@ udf_write_phys_sectors(struct udf_mount *ump, int what, void *blob,
 	buf->b_flags    = B_WRITE;
 	buf->b_cflags   = BC_BUSY;	/* needed? */
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(P_WRITE, &(buf->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_busy(&(buf->b_cflags));
 #endif
 	buf->b_iodone   = NULL;
 	buf->b_data     = blob;
@@ -545,7 +545,7 @@ udf_write_phys_dscr_sync(struct udf_mount *ump, struct udf_node *udf_node, int w
 	buf->b_flags    = B_WRITE;
 	buf->b_cflags   = BC_BUSY;	/* needed? */
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(P_WRITE, &(buf->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_busy(&(buf->b_cflags));
 #endif
 	buf->b_iodone   = NULL;
 	buf->b_data     = (void *) dscr;
@@ -595,7 +595,7 @@ udf_write_phys_dscr_async(struct udf_mount *ump, struct udf_node *udf_node,
 	buf->b_flags    = B_WRITE; // | B_ASYNC;
 	buf->b_cflags   = BC_BUSY;
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(P_WRITE, &(buf->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_busy(&(buf->b_cflags));
 #endif
 	buf->b_iodone	= dscrwr_callback;
 	buf->b_data     = dscr;

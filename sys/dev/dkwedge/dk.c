@@ -1211,7 +1211,7 @@ dkwedge_read(struct disk *pdk, struct vnode *vp, daddr_t blkno,
 	bp->b_flags = B_READ;
 	bp->b_cflags = BC_BUSY;
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_busy(&(bp->b_cflags));
 #endif
 	bp->b_dev = bdev;
 	bp->b_data = tbuf;

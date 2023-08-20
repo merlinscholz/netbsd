@@ -285,7 +285,7 @@ physio(void (*strategy)(struct buf *), struct buf *obp, dev_t dev, int flags,
 				bp = getiobuf(NULL, true);
 				bp->b_cflags |= BC_BUSY;
 #ifdef LOCKDOC_VFS
-				lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+				b_cflags_busy(&(bp->b_cflags));
 #endif
 			}
 			bp->b_dev = dev;
@@ -301,7 +301,7 @@ physio(void (*strategy)(struct buf *), struct buf *obp, dev_t dev, int flags,
 			bp->b_oflags = 0;
 			bp->b_cflags |= BC_BUSY;
 #ifdef LOCKDOC_VFS
-			lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+			b_cflags_busy(&(bp->b_cflags));
 #endif
 			bp->b_flags = flags | B_PHYS | B_RAW;
 			bp->b_iodone = physio_biodone;
@@ -437,7 +437,7 @@ done_locked:
 		mutex_enter(&bufcache_lock);
 		obp->b_cflags &= ~(BC_BUSY | BC_WANTED);
 #ifdef LOCKDOC_VFS
-		lockdoc_log_lock(V_WRITE, &(obp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+		b_cflags_unbusy(&(obp->b_cflags));
 #endif
 		obp->b_flags &= ~(B_PHYS | B_RAW);
 		obp->b_iodone = NULL;

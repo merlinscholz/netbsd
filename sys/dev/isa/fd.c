@@ -1613,7 +1613,7 @@ fdformat(dev_t dev, struct ne7_fd_formb *finfo, struct lwp *l)
 
 	bp->b_cflags = BC_BUSY;
 #ifdef LOCKDOC_VFS
-	lockdoc_log_lock(P_WRITE, &(bp->b_cflags), __FILE__, __LINE__, __func__, "b_cflags", 0);
+	b_cflags_busy(&(bp->b_cflags));
 #endif
 	bp->b_flags = B_PHYS | B_FORMAT;
 	bp->b_proc = l->l_proc;
