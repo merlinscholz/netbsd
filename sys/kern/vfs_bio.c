@@ -473,11 +473,6 @@ bufinit(void)
 	mutex_init(&bufcache_lock, MUTEX_DEFAULT, IPL_NONE);
 	mutex_init(&buffer_lock, MUTEX_DEFAULT, IPL_NONE);
 
-#ifdef LOCKDOC_VFS
-	lockdoc_log_memory(1, "kmutex_t", &bufcache_lock, sizeof(kmutex_t));
-	lockdoc_log_memory(1, "kmutex_t", &buffer_lock, sizeof(kmutex_t));
-#endif
-
 	cv_init(&needbuffer_cv, "needbuf");
 
 	if (bufmem_valimit != 0) {

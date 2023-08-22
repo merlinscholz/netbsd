@@ -170,9 +170,6 @@ vfs_mountalloc(struct vfsops *vfsops, vnode_t *vp)
 
 #ifdef LOCKDOC
 	lockdoc_log_memory(1, "mount", mp, sizeof(*mp));
-	lockdoc_log_memory(1, "kmutex_t", mp->mnt_renamelock, sizeof(*mp->mnt_renamelock));
-	lockdoc_log_memory(1, "kmutex_t", mp->mnt_vnodelock, sizeof(*mp->mnt_vnodelock));
-	lockdoc_log_memory(1, "kmutex_t", mp->mnt_updating, sizeof(*mp->mnt_updating));
 #endif
 
 	mutex_enter(&mountgen_lock);
@@ -327,9 +324,6 @@ vfs_rele(struct mount *mp)
 
 #ifdef LOCKDOC
 	lockdoc_log_memory(0, "mount", mp, sizeof(*mp));
-	lockdoc_log_memory(0, "kmutex_t", mp->mnt_renamelock, sizeof(*mp->mnt_renamelock));
-	lockdoc_log_memory(0, "kmutex_t", mp->mnt_vnodelock, sizeof(*mp->mnt_vnodelock));
-	lockdoc_log_memory(0, "kmutex_t", mp->mnt_updating, sizeof(*mp->mnt_updating));
 #endif
 
 	specificdata_fini(mount_specificdata_domain, &mp->mnt_specdataref);
